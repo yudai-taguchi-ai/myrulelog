@@ -1,0 +1,1759 @@
+<title>マイルールログ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#F4F5F0;
+    --surface:#FFFFFF;
+    --surface-alt:#EAECE4;
+    --border:#D8DBCF;
+    --text:#20241D;
+    --text-muted:#666D5E;
+    --accent:#2F5D50;
+    --accent-strong:#1E463B;
+    --accent-soft:#DCEAE3;
+    --accent-contrast:#FFFFFF;
+    --danger:#B5482B;
+    --danger-soft:#F4E1D9;
+    --pos-1:#DCEAE3; --pos-2:#8FC3AE; --pos-3:#1E463B; --pos-3-contrast:#FFFFFF;
+    --neg-1:#F6E1D3; --neg-2:#E39A67; --neg-3:#B5482B; --neg-3-contrast:#FFFFFF;
+    --radius-s:8px;
+    --radius-m:14px;
+    --shadow-1: 0 1px 2px rgba(20,25,20,.06), 0 1px 1px rgba(20,25,20,.04);
+    --font-display:'Outfit','Hiragino Sans','Noto Sans JP',sans-serif;
+    --font-body:'Work Sans','Hiragino Sans','Noto Sans JP',sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12150F; --surface:#1B1F17; --surface-alt:#242A1F; --border:#343C2D;
+      --text:#E8EBE1; --text-muted:#9BA391;
+      --accent:#74C6A7; --accent-strong:#9AD9C0; --accent-soft:#20362C; --accent-contrast:#0D1310;
+      --danger:#E28E6E; --danger-soft:#3B261D;
+      --pos-1:#1D2E27; --pos-2:#3E7863; --pos-3:#8FD4BA; --pos-3-contrast:#0D1310;
+      --neg-1:#2E2119; --neg-2:#8A5330; --neg-3:#E28E6E; --neg-3-contrast:#211008;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12150F; --surface:#1B1F17; --surface-alt:#242A1F; --border:#343C2D;
+    --text:#E8EBE1; --text-muted:#9BA391;
+    --accent:#74C6A7; --accent-strong:#9AD9C0; --accent-soft:#20362C; --accent-contrast:#0D1310;
+    --danger:#E28E6E; --danger-soft:#3B261D;
+    --pos-1:#1D2E27; --pos-2:#3E7863; --pos-3:#8FD4BA; --pos-3-contrast:#0D1310;
+    --neg-1:#2E2119; --neg-2:#8A5330; --neg-3:#E28E6E; --neg-3-contrast:#211008;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{overscroll-behavior-y:contain;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-body);margin:0;padding-inline:16px;min-height:100%;}
+  #app{max-width:520px;margin:0 auto;padding-block:14px calc(78px + env(safe-area-inset-bottom,0px));}
+  h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;}
+  button{font-family:inherit;touch-action:manipulation;}
+  input,textarea{font-size:16px;}
+  .topbar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-block:2px 10px;}
+  .brand{display:flex;align-items:baseline;gap:8px;}
+  .brand .mark{width:20px;height:20px;border-radius:6px;background:var(--accent);flex:none;}
+  .brand h1{font-size:17px;font-weight:700;color:var(--text);}
+  .brand .sub{font-size:12px;color:var(--text-muted);}
+  .bottomnav{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:520px;display:flex;background:var(--surface);border-top:1px solid var(--border);padding:4px 6px calc(4px + env(safe-area-inset-bottom,0px));z-index:20;box-shadow:0 -2px 14px rgba(20,25,20,.07);}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;padding:7px 2px 6px;border-radius:10px;font-size:10.5px;font-weight:600;color:var(--text-muted);cursor:pointer;min-height:52px;}
+  .tab svg{width:20px;height:20px;}
+  .tab.active{color:var(--accent-strong);}
+  .tab:active{background:var(--surface-alt);}
+  .tab:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .banner{background:var(--accent-soft);color:var(--accent-strong);border-radius:var(--radius-s);padding:10px 12px;font-size:12.5px;margin-bottom:14px;line-height:1.5;}
+  .banner.warn{background:var(--danger-soft);color:var(--danger);}
+
+  .hero{background:var(--accent);color:var(--accent-contrast);border-radius:var(--radius-m);padding:18px;margin-bottom:16px;}
+  .hero .big{font-family:var(--font-mono);font-size:38px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
+  .hero .big.negv{color:#FFD9C9;}
+  .hero .label{font-size:12px;opacity:.85;margin-top:4px;}
+  .hero .meta{font-size:11px;opacity:.75;margin-top:10px;}
+
+  .sectionlabel{font-size:11.5px;color:var(--text-muted);font-weight:600;letter-spacing:.03em;margin:18px 0 8px;}
+  .sectionlabel:first-of-type{margin-top:0;}
+  .sectionlabel.collapsehead{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;padding:0;cursor:pointer;}
+  .sectionlabel.collapsehead .cscount{font-family:var(--font-mono);}
+  .sectionlabel.collapsehead .chev{display:flex;flex:none;color:var(--text-muted);transition:transform .15s ease;}
+  .sectionlabel.collapsehead .chev svg{width:13px;height:13px;display:block;}
+  .sectionlabel.collapsehead[aria-expanded="true"] .chev{transform:rotate(90deg);}
+
+  .daynav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .daynav .datebox{text-align:center;}
+  .daynav .dateline{font-family:var(--font-display);font-size:15px;font-weight:600;}
+  .daynav .todaytag{display:inline-block;font-size:10.5px;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;margin-top:2px;font-weight:600;}
+  .iconbtn{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;}
+  .iconbtn:disabled{opacity:.35;cursor:default;}
+  .iconbtn svg{width:16px;height:16px;}
+
+  .daynetline{font-size:12px;color:var(--text-muted);margin-bottom:10px;text-align:center;}
+  .daynetline b{font-family:var(--font-mono);color:var(--text);}
+
+  .entryrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-s);padding:9px 11px;margin-bottom:8px;}
+  .entryrow .info{min-width:0;}
+  .entryrow .rname{font-size:13px;font-weight:600;}
+  .entryrow .note{font-size:11.5px;color:var(--text-muted);margin-top:2px;word-break:break-word;}
+  .entryrow .pts{font-family:var(--font-mono);font-weight:600;font-size:14px;white-space:nowrap;}
+  .entryrow .pts.pos{color:var(--accent);}
+  .entryrow .pts.neg{color:var(--danger);}
+  .entryrow .right{display:flex;align-items:center;gap:8px;flex:none;}
+  .miniclose{width:22px;height:22px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;flex:none;}
+  .miniclose svg{width:12px;height:12px;}
+  .entryrow.editing{display:block;}
+
+  .empty{text-align:center;padding:28px 16px;color:var(--text-muted);}
+  .empty p{margin:0 0 12px;font-size:13px;line-height:1.6;}
+  .primarybtn{background:var(--accent);color:var(--accent-contrast);border:none;border-radius:10px;padding:10px 18px;font-weight:600;font-size:13.5px;cursor:pointer;}
+  .primarybtn:disabled{opacity:.4;cursor:default;}
+  .ghostbtn{background:transparent;color:var(--text-muted);border:none;padding:10px 14px;font-weight:600;font-size:13px;cursor:pointer;}
+
+  .rulecard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow-1);}
+  .rulecard.dragging, .rewardrow.dragging{box-shadow:0 10px 24px rgba(20,25,20,.22);opacity:.92;}
+  .rulecard .toprow{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .rulecard .rulenamewrap{flex:1;min-width:0;}
+  .rulecard .name{font-size:13.5px;font-weight:600;}
+  .rulecard .range{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:1px;}
+  .addbtn{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:9px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;flex:none;}
+  .draghandle{width:26px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:grab;touch-action:none;flex:none;-webkit-user-select:none;user-select:none;}
+  .draghandle svg{width:15px;height:15px;}
+  .drop-placeholder{border:2px dashed var(--border);border-radius:var(--radius-m);background:var(--surface-alt);margin-bottom:9px;}
+
+  .entryform{margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);}
+  .sliderrow{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .sliderrow input[type=range]{flex:1;accent-color:var(--accent);}
+  .stepbtn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface-alt);color:var(--text);font-size:16px;cursor:pointer;flex:none;}
+  .valuebox{font-family:var(--font-mono);font-size:18px;font-weight:600;min-width:46px;text-align:center;}
+  .valuebox.pos{color:var(--accent);} .valuebox.neg{color:var(--danger);}
+  .noteinput{width:100%;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);color:var(--text);padding:8px 10px;font-size:16px;margin-bottom:10px;}
+  textarea.noteinput{font-family:inherit;resize:vertical;min-height:56px;}
+  .notewrap{margin-bottom:8px;}
+  .noterow{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:-4px;}
+  .notestatus{font-size:11px;color:var(--accent);}
+  .formbtns{display:flex;gap:8px;justify-content:flex-end;}
+
+  .rewardrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow-1);}
+  .rewardrow .name{font-size:13.5px;font-weight:600;}
+  .rewardrow .cost{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:1px;}
+  .redeembtn{background:var(--accent);color:var(--accent-contrast);border:none;border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;flex:none;}
+  .redeembtn:disabled{background:var(--surface-alt);color:var(--text-muted);cursor:default;}
+
+  .ruleaddrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .ruleaddrow input.nameinput{flex:1 1 140px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);padding:9px 12px;font-size:16px;min-width:0;}
+  .ruleaddrow input.numinput{width:72px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);padding:9px 8px;font-size:16px;text-align:center;}
+  .rulerow{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:8px;flex-wrap:wrap;}
+  .rulerow .name{flex:1 1 120px;font-size:13.5px;min-width:0;}
+  .rulerow .rangetxt{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);}
+  .rulerow .actions{display:flex;gap:6px;margin-left:auto;}
+  .confirmbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;background:var(--danger-soft);border-radius:var(--radius-s);padding:8px 10px;margin:-2px 0 8px;font-size:12.5px;color:var(--danger);}
+  .confirmbar button{border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+  .confirmbar .yes{background:var(--danger);color:#fff;}
+  .confirmbar .no{background:transparent;color:var(--danger);}
+
+  .settingsrow{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow-1);}
+  .settingsrow .lbl{font-size:13px;}
+  .settingsrow .lbl .sub{display:block;font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .settingsrow input{width:70px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);padding:6px 8px;font-size:16px;text-align:center;font-family:var(--font-mono);}
+
+  .segctl{display:flex;gap:4px;background:var(--surface-alt);border-radius:10px;padding:4px;margin-bottom:14px;}
+  .segbtn{flex:1;border:none;background:transparent;padding:7px 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--text-muted);cursor:pointer;}
+  .segbtn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-1);}
+  .yearnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .yearnav .ylabel{font-family:var(--font-display);font-size:17px;font-weight:700;}
+  .yearsummary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:14px;margin-bottom:14px;box-shadow:var(--shadow-1);display:flex;justify-content:space-between;gap:10px;}
+  .yearsummary .col{text-align:center;flex:1;}
+  .yearsummary .num{font-family:var(--font-mono);font-size:19px;font-weight:600;}
+  .yearsummary .cap{font-size:10.5px;color:var(--text-muted);margin-top:2px;}
+
+  .detailpanel{background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius-m);padding:14px;margin-bottom:16px;}
+  .detailpanel .dhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .detailpanel .dtitle{font-family:var(--font-display);font-weight:600;font-size:14px;}
+  .detailpanel .closex{background:none;border:none;font-size:16px;color:var(--text-muted);cursor:pointer;}
+  .redeemline{font-size:12px;color:var(--accent);margin-top:6px;}
+
+  .month{margin-bottom:22px;}
+  .month h3{font-size:13.5px;font-weight:700;margin-bottom:6px;}
+  .weekhead{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;}
+  .weekhead span{font-size:10px;color:var(--text-muted);text-align:center;}
+  .monthgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .daycell{aspect-ratio:1/1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10.5px;cursor:pointer;border:1px solid transparent;background:var(--surface-alt);color:var(--text);}
+  .daycell.blank{visibility:hidden;cursor:default;}
+  .daycell.inactive{background:transparent;color:var(--text-muted);opacity:.4;cursor:default;}
+  .daycell.clean{background:var(--pos-1);}
+  .daycell.pretrack{background:var(--surface-alt);opacity:.6;}
+  .daycell.zero{background:var(--surface-alt);}
+  .daycell.pos1{background:var(--pos-1);} .daycell.pos2{background:var(--pos-2);color:var(--text);} .daycell.pos3{background:var(--pos-3);color:var(--pos-3-contrast);}
+  .daycell.neg1{background:var(--neg-1);} .daycell.neg2{background:var(--neg-2);color:var(--text);} .daycell.neg3{background:var(--neg-3);color:var(--neg-3-contrast);}
+  .daycell.istoday{border-color:var(--accent);border-width:2px;}
+  .daycell.isselected{outline:2px solid var(--accent);outline-offset:1px;}
+  .daycell .dnum{font-family:var(--font-mono);line-height:1.1;}
+  .daycell .dnet{font-family:var(--font-mono);font-size:8.5px;line-height:1;margin-top:1px;}
+
+  .graphwrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:10px 4px;margin-bottom:8px;box-shadow:var(--shadow-1);}
+  .barchart .barhit{cursor:pointer;}
+  .graphinfo{font-size:12px;color:var(--text);text-align:center;padding:2px 8px 16px;}
+  .graphinfo.muted{color:var(--text-muted);}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;font-size:10.5px;color:var(--text-muted);}
+  .legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;}
+</style>
+
+<div id="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark"></div>
+      <h1>マイルールログ</h1>
+      <span class="sub">ポイント制ルール管理</span>
+    </div>
+  </div>
+  <main id="view-root"></main>
+</div>
+<nav class="bottomnav" role="tablist">
+  <button class="tab" data-view="home" role="tab" aria-label="ホーム"></button>
+  <button class="tab" data-view="calendar" role="tab" aria-label="カレンダー"></button>
+  <button class="tab" data-view="graph" role="tab" aria-label="グラフ"></button>
+  <button class="tab" data-view="manage" role="tab" aria-label="管理"></button>
+</nav>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- utilities ----------
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function toDateStr(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function fromDateStr(s){ var p=s.split("-").map(Number); return new Date(p[0], p[1]-1, p[2]); }
+  function addDays(d,n){ var nd=new Date(d); nd.setDate(nd.getDate()+n); return nd; }
+  var WD = ["月","火","水","木","金","土","日"]; // Monday-first, for calendar grid headers
+  var WD_NATIVE = ["日","月","火","水","木","金","土"]; // Date.getDay() order (0=Sun), for formatting a specific date
+  function formatDate(s){ var d=fromDateStr(s); return (d.getMonth()+1)+"月"+d.getDate()+"日("+WD_NATIVE[d.getDay()]+")"; }
+  function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+  function nowIso(){ return new Date().toISOString(); }
+  function uid(){ return "e"+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  function signed(n){ return (n>0?"+":"")+n; }
+  function daysBetweenInclusive(start,end){ return Math.round((fromDateStr(end)-fromDateStr(start))/86400000)+1; }
+
+  function icon(name){
+    var paths = {
+      chevronLeft:'<path d="M13 4l-6 6 6 6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+      chevronRight:'<path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+      pencil:'<path d="M4 13.5V16h2.5l7.4-7.4-2.5-2.5L4 13.5z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/><path d="M12.6 4.9l2.5 2.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/>',
+      trash:'<path d="M4.5 6h11M8 6V4.5h4V6M6 6l.6 9.5h6.8L14 6" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+      grip:'<circle cx="7" cy="5" r="1.3" fill="currentColor"/><circle cx="13" cy="5" r="1.3" fill="currentColor"/><circle cx="7" cy="10" r="1.3" fill="currentColor"/><circle cx="13" cy="10" r="1.3" fill="currentColor"/><circle cx="7" cy="15" r="1.3" fill="currentColor"/><circle cx="13" cy="15" r="1.3" fill="currentColor"/>',
+      home:'<path d="M4 10.2L10 5l6 5.2" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.4 9.2V15.3h9.2V9.2" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/>',
+      calendar:'<rect x="4" y="5.3" width="12" height="10.2" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 8.6h12M7.2 4v2.8M12.8 4v2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>',
+      graph:'<rect x="4.3" y="10.2" width="3" height="5.6" rx="1" fill="currentColor"/><rect x="8.5" y="6.4" width="3" height="9.4" rx="1" fill="currentColor"/><rect x="12.7" y="8.8" width="3" height="7" rx="1" fill="currentColor"/>',
+      manage:'<line x1="4" y1="6.5" x2="16" y2="6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11.2" cy="6.5" r="2" fill="currentColor"/><line x1="4" y1="13.5" x2="16" y2="13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="7.4" cy="13.5" r="2" fill="currentColor"/>'
+    };
+    return '<svg viewBox="0 0 20 20" aria-hidden="true">'+paths[name]+'</svg>';
+  }
+
+  // ---------- state ----------
+  var todayStr = toDateStr(new Date());
+  var state = {
+    dbAvailable: null,
+    db: null,
+    rules: [], rulesReady:false,
+    rewards: [], rewardsReady:false,
+    settings: {baseGain:20, startedAt: todayStr, createdAt: nowIso()},
+    settingsDirty: false,
+    logsByDate: {}, loggedSumAll: 0, logsReady:false,
+    redemptionsByDate: {}, redeemedSumAll: 0,
+    wallet: 0,
+    view: "home",
+    currentDateStr: todayStr,
+    loggingRuleId: null,
+    loggingDate: null,
+    draftValue: 0,
+    editingEntryId: null,
+    editDraftValue: 0,
+    calPeriod: "month",
+    calYear: new Date().getFullYear(),
+    calMonth: new Date().getMonth(),
+    calWeekStart: mondayOf(todayStr),
+    graphPeriod: "day",
+    graphDayOffset: 0,
+    graphWeekOffset: 0,
+    graphMonthYear: new Date().getFullYear(),
+    graphSelectedKey: null,
+    selectedDetailDate: null,
+    editingRuleId: null, confirmDeleteRuleId: null,
+    editingRewardId: null, confirmDeleteRewardId: null,
+    ruleLogOpen: false, rewardsOpen: false, calRuleLogOpen: false, calRewardsOpen: false,
+    addingReward: false,
+    unsubRules: null, unsubRewards: null
+  };
+
+  // ---------- local-storage fallback ----------
+  var LS_KEY = "myrulelog_v2";
+  function lsLoad(){
+    try{
+      var raw = localStorage.getItem(LS_KEY);
+      var data = raw ? JSON.parse(raw) : null;
+      if(!data || typeof data!=="object") data = {};
+      if(!data.rules) data.rules=[];
+      if(!data.rewards) data.rewards=[];
+      if(!data.logs) data.logs={};
+      if(!data.redemptions) data.redemptions=[];
+      if(!data.settings) data.settings=null;
+      return data;
+    }catch(e){ return {rules:[],rewards:[],logs:{},redemptions:[],settings:null}; }
+  }
+  function lsSave(data){ try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){} }
+
+  function sortByCreated(list){ return list.slice().sort(function(a,b){ return (a.createdAt||"").localeCompare(b.createdAt||""); }); }
+
+  // ---------- caches / wallet ----------
+  function buildLogsCacheFromDocs(docs){
+    var map = {}, sum = 0;
+    docs.forEach(function(d){
+      if(!d || !d.date) return;
+      var entries = Array.isArray(d.entries) ? d.entries : [];
+      map[d.date] = {entries: entries, note: typeof d.note==="string" ? d.note : ""};
+      entries.forEach(function(e){ sum += (typeof e.points==="number" ? e.points : 0); });
+    });
+    return {map:map, sum:sum};
+  }
+  function buildRedemptionsCacheFromDocs(docs){
+    var map = {}, sum = 0;
+    docs.forEach(function(d){
+      if(!d || !d.date) return;
+      if(!map[d.date]) map[d.date]=[];
+      map[d.date].push({rewardName:d.rewardName, cost:d.cost});
+      sum += (typeof d.cost==="number" ? d.cost : 0);
+    });
+    return {map:map, sum:sum};
+  }
+
+  function refreshLogsCache(){
+    if(state.dbAvailable){
+      return state.db.collection("logs").get().then(function(snap){
+        var res = buildLogsCacheFromDocs(snap.docs.map(function(d){return d.data();}));
+        state.logsByDate = res.map; state.loggedSumAll = res.sum; state.logsReady = true;
+      }).catch(function(e){ console.error(e); });
+    } else {
+      var data = lsLoad();
+      var res = buildLogsCacheFromDocs(Object.keys(data.logs).map(function(k){ return data.logs[k]; }));
+      state.logsByDate = res.map; state.loggedSumAll = res.sum; state.logsReady = true;
+      return Promise.resolve();
+    }
+  }
+  function refreshRedemptionsCache(){
+    if(state.dbAvailable){
+      return state.db.collection("redemptions").get().then(function(snap){
+        var res = buildRedemptionsCacheFromDocs(snap.docs.map(function(d){return d.data();}));
+        state.redemptionsByDate = res.map; state.redeemedSumAll = res.sum;
+      }).catch(function(e){ console.error(e); });
+    } else {
+      var data = lsLoad();
+      var res = buildRedemptionsCacheFromDocs(data.redemptions);
+      state.redemptionsByDate = res.map; state.redeemedSumAll = res.sum;
+      return Promise.resolve();
+    }
+  }
+  function recomputeWallet(){
+    if(!state.settings) { state.wallet = 0; return; }
+    var start = state.settings.startedAt;
+    var elapsed = start<=todayStr ? daysBetweenInclusive(start, todayStr) : 0;
+    var base = elapsed * (state.settings.baseGain||0);
+    state.wallet = base + state.loggedSumAll - state.redeemedSumAll;
+  }
+
+  function ensureSettings(){
+    // state.settings already has a safe default from state init, so the UI is
+    // never blocked on this resolving. This just reconciles with the backend,
+    // and never clobbers a value the user already changed locally (settingsDirty)
+    // while this was still in flight.
+    if(state.dbAvailable){
+      var ref = state.db.doc("meta/settings");
+      return ref.get().then(function(snap){
+        if(state.settingsDirty){ return ref.set(state.settings); }
+        if(snap.exists){ state.settings = snap.data(); }
+        else{ return ref.set(state.settings); }
+      });
+    } else {
+      var data = lsLoad();
+      if(state.settingsDirty || !data.settings){ data.settings = state.settings; lsSave(data); }
+      else { state.settings = data.settings; }
+      return Promise.resolve();
+    }
+  }
+  function updateBaseGain(val){
+    val = Number(val); if(!isFinite(val)) return;
+    if(!state.settings) state.settings = {baseGain:val, startedAt: todayStr, createdAt: nowIso()};
+    else state.settings.baseGain = val;
+    state.settingsDirty = true;
+    if(state.dbAvailable){ state.db.doc("meta/settings").update({baseGain:val}).catch(function(e){console.error(e);}); }
+    else { var data = lsLoad(); data.settings = state.settings; lsSave(data); }
+    recomputeWallet();
+  }
+
+  // ---------- rules / rewards CRUD ----------
+  function addRule(name,min,max){
+    name = (name||"").trim(); if(!name) return;
+    min = Number(min); max = Number(max);
+    if(!isFinite(min)) min=0; if(!isFinite(max)) max=0;
+    if(min>max){ var t=min; min=max; max=t; }
+    var body = {name:name, min:min, max:max, order: state.rules.length, createdAt: nowIso()};
+    if(state.dbAvailable){ state.db.collection("rules").add(body).catch(function(e){console.error(e);}); }
+    else { var data=lsLoad(); body.id=uid(); data.rules.push(body); lsSave(data); syncLocalRules(); render(); }
+  }
+  function normalizeAndSortRules(list){
+    var hasAllOrder = list.length>0 && list.every(function(r){ return typeof r.order==="number"; });
+    return hasAllOrder ? list.slice().sort(function(a,b){ return a.order-b.order; }) : sortByCreated(list);
+  }
+  function migrateRuleOrderIfNeeded(sortedList){
+    var needsMigration = sortedList.some(function(r){ return typeof r.order!=="number"; });
+    if(!needsMigration) return;
+    sortedList.forEach(function(r, idx){
+      if(typeof r.order==="number") return;
+      r.order = idx;
+      if(state.dbAvailable){ state.db.doc("rules/"+r.id).update({order:idx}).catch(function(e){console.error(e);}); }
+      else { var data=lsLoad(); data.rules.forEach(function(rr){ if(rr.id===r.id) rr.order=idx; }); lsSave(data); }
+    });
+  }
+  function persistRuleOrder(orderedIds){
+    var byId = {}; state.rules.forEach(function(r){ byId[r.id]=r; });
+    var newList = orderedIds.map(function(id){ return byId[id]; }).filter(Boolean);
+    newList.forEach(function(r, idx){ r.order = idx; });
+    state.rules = newList;
+    if(state.dbAvailable){
+      orderedIds.forEach(function(id, idx){ state.db.doc("rules/"+id).update({order:idx}).catch(function(e){console.error(e);}); });
+    } else {
+      var data = lsLoad();
+      orderedIds.forEach(function(id, idx){ data.rules.forEach(function(r){ if(r.id===id) r.order=idx; }); });
+      lsSave(data);
+    }
+  }
+  function renameRuleFull(id,name,min,max){
+    name=(name||"").trim(); if(!name) return;
+    min=Number(min); max=Number(max);
+    if(!isFinite(min)) min=0; if(!isFinite(max)) max=0;
+    if(min>max){ var t=min; min=max; max=t; }
+    if(state.dbAvailable){ state.db.doc("rules/"+id).update({name:name,min:min,max:max}).catch(function(e){console.error(e);}); }
+    else { var data=lsLoad(); data.rules.forEach(function(r){ if(r.id===id){ r.name=name; r.min=min; r.max=max; } }); lsSave(data); syncLocalRules(); render(); }
+  }
+  function deleteRule(id){
+    if(state.dbAvailable){ state.db.doc("rules/"+id).delete().catch(function(e){console.error(e);}); }
+    else { var data=lsLoad(); data.rules=data.rules.filter(function(r){return r.id!==id;}); lsSave(data); syncLocalRules(); render(); }
+  }
+  function addReward(name,cost){
+    name=(name||"").trim(); if(!name) return;
+    cost = Number(cost); if(!isFinite(cost)||cost<0) cost=0;
+    var body = {name:name, cost:cost, order: state.rewards.length, createdAt: nowIso()};
+    if(state.dbAvailable){ state.db.collection("rewards").add(body).catch(function(e){console.error(e);}); }
+    else { var data=lsLoad(); body.id=uid(); data.rewards.push(body); lsSave(data); syncLocalRewards(); render(); }
+  }
+  function normalizeAndSortRewards(list){
+    var hasAllOrder = list.length>0 && list.every(function(r){ return typeof r.order==="number"; });
+    return hasAllOrder ? list.slice().sort(function(a,b){ return a.order-b.order; }) : sortByCreated(list);
+  }
+  function migrateRewardOrderIfNeeded(sortedList){
+    var needsMigration = sortedList.some(function(r){ return typeof r.order!=="number"; });
+    if(!needsMigration) return;
+    sortedList.forEach(function(r, idx){
+      if(typeof r.order==="number") return;
+      r.order = idx;
+      if(state.dbAvailable){ state.db.doc("rewards/"+r.id).update({order:idx}).catch(function(e){console.error(e);}); }
+      else { var data=lsLoad(); data.rewards.forEach(function(rr){ if(rr.id===r.id) rr.order=idx; }); lsSave(data); }
+    });
+  }
+  function persistRewardOrder(orderedIds){
+    var byId = {}; state.rewards.forEach(function(r){ byId[r.id]=r; });
+    var newList = orderedIds.map(function(id){ return byId[id]; }).filter(Boolean);
+    newList.forEach(function(r, idx){ r.order = idx; });
+    state.rewards = newList;
+    if(state.dbAvailable){
+      orderedIds.forEach(function(id, idx){ state.db.doc("rewards/"+id).update({order:idx}).catch(function(e){console.error(e);}); });
+    } else {
+      var data = lsLoad();
+      orderedIds.forEach(function(id, idx){ data.rewards.forEach(function(r){ if(r.id===id) r.order=idx; }); });
+      lsSave(data);
+    }
+  }
+  function renameRewardFull(id,name,cost){
+    name=(name||"").trim(); if(!name) return;
+    cost = Number(cost); if(!isFinite(cost)||cost<0) cost=0;
+    if(state.dbAvailable){ state.db.doc("rewards/"+id).update({name:name,cost:cost}).catch(function(e){console.error(e);}); }
+    else { var data=lsLoad(); data.rewards.forEach(function(r){ if(r.id===id){ r.name=name; r.cost=cost; } }); lsSave(data); syncLocalRewards(); render(); }
+  }
+  function deleteReward(id){
+    if(state.dbAvailable){ state.db.doc("rewards/"+id).delete().catch(function(e){console.error(e);}); }
+    else { var data=lsLoad(); data.rewards=data.rewards.filter(function(r){return r.id!==id;}); lsSave(data); syncLocalRewards(); render(); }
+  }
+  function syncLocalRules(){
+    var data=lsLoad();
+    state.rules = normalizeAndSortRules(data.rules);
+    migrateRuleOrderIfNeeded(state.rules);
+    state.rulesReady=true;
+  }
+  function syncLocalRewards(){
+    var data=lsLoad();
+    state.rewards = normalizeAndSortRewards(data.rewards);
+    migrateRewardOrderIfNeeded(state.rewards);
+    state.rewardsReady=true;
+  }
+
+  // ---------- entries ----------
+  function maybeExtendStartedAt(dateStr){
+    if(!state.settings || dateStr >= state.settings.startedAt) return Promise.resolve();
+    state.settings.startedAt = dateStr;
+    state.settingsDirty = true;
+    if(state.dbAvailable){
+      return state.db.doc("meta/settings").update({startedAt:dateStr}).catch(function(e){ console.error(e); });
+    } else {
+      var data = lsLoad();
+      data.settings = state.settings;
+      lsSave(data);
+      return Promise.resolve();
+    }
+  }
+  function addEntry(dateStr, entry, cb){
+    if(state.dbAvailable){
+      var ref = state.db.doc("logs/"+dateStr);
+      ref.get().then(function(snap){
+        var d = snap.exists ? snap.data() : {};
+        var entries = Array.isArray(d.entries) ? d.entries : [];
+        entries = entries.concat([entry]);
+        return ref.set({date:dateStr, entries:entries, note:d.note||"", updatedAt: nowIso()});
+      }).then(function(){
+        return maybeExtendStartedAt(dateStr);
+      }).then(function(){
+        return refreshLogsCache();
+      }).then(function(){ recomputeWallet(); cb&&cb(true); })
+      .catch(function(e){ console.error(e); cb&&cb(false); });
+    } else {
+      var data = lsLoad();
+      if(!data.logs[dateStr]) data.logs[dateStr] = {date:dateStr, entries:[], note:""};
+      data.logs[dateStr].entries.push(entry);
+      lsSave(data);
+      maybeExtendStartedAt(dateStr).then(function(){
+        return refreshLogsCache();
+      }).then(function(){ recomputeWallet(); cb&&cb(true); });
+    }
+  }
+  function deleteEntry(dateStr, entryId, cb){
+    if(state.dbAvailable){
+      var ref = state.db.doc("logs/"+dateStr);
+      ref.get().then(function(snap){
+        var d = snap.exists ? snap.data() : {};
+        var entries = Array.isArray(d.entries) ? d.entries : [];
+        var note = d.note||"";
+        entries = entries.filter(function(e){ return e.id!==entryId; });
+        return (entries.length||note) ? ref.set({date:dateStr, entries:entries, note:note, updatedAt: nowIso()}) : ref.delete();
+      }).then(function(){ return refreshLogsCache(); })
+      .then(function(){ recomputeWallet(); cb&&cb(true); })
+      .catch(function(e){ console.error(e); cb&&cb(false); });
+    } else {
+      var data = lsLoad();
+      if(data.logs[dateStr]){
+        data.logs[dateStr].entries = data.logs[dateStr].entries.filter(function(e){ return e.id!==entryId; });
+        if(!data.logs[dateStr].entries.length && !data.logs[dateStr].note) delete data.logs[dateStr];
+      }
+      lsSave(data);
+      refreshLogsCache().then(function(){ recomputeWallet(); cb&&cb(true); });
+    }
+  }
+  function updateEntry(dateStr, entryId, newPoints, newNote, cb){
+    if(state.dbAvailable){
+      var ref = state.db.doc("logs/"+dateStr);
+      ref.get().then(function(snap){
+        var d = snap.exists ? snap.data() : {};
+        var entries = Array.isArray(d.entries) ? d.entries : [];
+        var found = false;
+        entries = entries.map(function(e){
+          if(e.id!==entryId) return e;
+          found = true;
+          return {id:e.id, ruleId:e.ruleId, ruleName:e.ruleName, points:newPoints, note:newNote, at:e.at, updatedAt: nowIso()};
+        });
+        if(!found) return null;
+        return ref.set({date:dateStr, entries:entries, note:d.note||"", updatedAt: nowIso()});
+      }).then(function(){ return refreshLogsCache(); })
+      .then(function(){ recomputeWallet(); cb&&cb(true); })
+      .catch(function(e){ console.error(e); cb&&cb(false); });
+    } else {
+      var data = lsLoad();
+      if(data.logs[dateStr]){
+        data.logs[dateStr].entries = data.logs[dateStr].entries.map(function(e){
+          if(e.id!==entryId) return e;
+          return {id:e.id, ruleId:e.ruleId, ruleName:e.ruleName, points:newPoints, note:newNote, at:e.at, updatedAt: nowIso()};
+        });
+      }
+      lsSave(data);
+      refreshLogsCache().then(function(){ recomputeWallet(); cb&&cb(true); });
+    }
+  }
+  function redeemReward(reward){
+    var body = {date: todayStr, rewardId: reward.id, rewardName: reward.name, cost: reward.cost, redeemedAt: nowIso()};
+    if(state.dbAvailable){
+      state.db.collection("redemptions").add(body).then(function(){ return refreshRedemptionsCache(); })
+        .then(function(){ recomputeWallet(); render(); })
+        .catch(function(e){ console.error(e); });
+    } else {
+      var data = lsLoad(); body.id=uid(); data.redemptions.push(body); lsSave(data);
+      refreshRedemptionsCache().then(function(){ recomputeWallet(); render(); });
+    }
+  }
+
+  // ---------- day / year helpers ----------
+  function dayNetFor(dateStr){
+    var rec = state.logsByDate[dateStr];
+    var entries = rec ? rec.entries : [];
+    var note = rec ? (rec.note||"") : "";
+    var sum = entries.reduce(function(s,e){ return s+(typeof e.points==="number"?e.points:0); }, 0);
+    var tracked = !!(state.settings && dateStr >= state.settings.startedAt);
+    var base = tracked ? (state.settings.baseGain||0) : 0;
+    return {entries: entries, note: note, base: base, total: base + sum, tracked: tracked};
+  }
+
+  function updateDayNote(dateStr, note, cb){
+    note = String(note==null?"":note).slice(0,300);
+    function afterWrite(){
+      var p = note ? maybeExtendStartedAt(dateStr) : Promise.resolve();
+      p.then(function(){ return refreshLogsCache(); }).then(function(){ recomputeWallet(); cb&&cb(true); });
+    }
+    if(state.dbAvailable){
+      var ref = state.db.doc("logs/"+dateStr);
+      ref.get().then(function(snap){
+        var d = snap.exists ? snap.data() : {};
+        var entries = Array.isArray(d.entries) ? d.entries : [];
+        if(!entries.length && !note){ return snap.exists ? ref.delete() : null; }
+        return ref.set({date:dateStr, entries:entries, note:note, updatedAt: nowIso()});
+      }).then(afterWrite).catch(function(e){ console.error(e); cb&&cb(false); });
+    } else {
+      var data = lsLoad();
+      var existing = data.logs[dateStr];
+      var entries = (existing && existing.entries) || [];
+      if(!entries.length && !note){ delete data.logs[dateStr]; }
+      else { data.logs[dateStr] = {date:dateStr, entries:entries, note:note}; }
+      lsSave(data);
+      afterWrite();
+    }
+  }
+
+  function dayNoteSectionHtml(dateStr){
+    var dn = dayNetFor(dateStr);
+    var uid2 = dateStr.replace(/-/g,"");
+    return '<div class="sectionlabel">この日のメモ</div>'+
+      '<div class="notewrap">'+
+      '<textarea class="noteinput daynotearea" id="dayNoteArea_'+uid2+'" data-notedate="'+dateStr+'" placeholder="今日の振り返りやメモを自由に書けます" maxlength="300" rows="2">'+escapeHtml(dn.note)+'</textarea>'+
+      '<div class="noterow"><span class="notestatus" id="dayNoteStatus_'+uid2+'"></span>'+
+      '<button class="addbtn" data-savenote="'+dateStr+'">保存</button></div>'+
+      '</div>';
+  }
+  function bindDayNote(dateStr){
+    var uid2 = dateStr.replace(/-/g,"");
+    var btn = document.querySelector('[data-savenote="'+dateStr+'"]');
+    if(!btn) return;
+    btn.onclick = function(){
+      var area = document.getElementById("dayNoteArea_"+uid2);
+      var status = document.getElementById("dayNoteStatus_"+uid2);
+      if(!area) return;
+      updateDayNote(dateStr, area.value, function(ok){
+        if(status) status.textContent = ok ? "保存しました" : "保存できませんでした";
+        setTimeout(function(){ render(); }, ok ? 900 : 1500);
+      });
+    };
+  }
+
+  function sectionHeaderHtml(leftHtml, collapseKey, isOpen){
+    return '<button type="button" class="sectionlabel collapsehead" data-collapsekey="'+collapseKey+'" aria-expanded="'+(isOpen?"true":"false")+'">'+
+      '<span class="cslabel">'+leftHtml+'</span>'+
+      '<span class="chev">'+icon("chevronRight")+'</span>'+
+    '</button>';
+  }
+
+  function ruleLogSectionHtml(dateStr, opts){
+    opts = opts || {};
+    var listId = opts.listId || "ruleList";
+    var withDrag = opts.withDrag !== false;
+    var label = opts.label || 'ルールを記録する';
+    var hasOpenForm = state.loggingRuleId && state.loggingDate===dateStr;
+    var collapsible = !!opts.collapsible && state.rulesReady && state.rules.length>0;
+    var isOpen = collapsible ? (!!state[opts.openKey] || hasOpenForm) : true;
+
+    if(!state.rulesReady){
+      return '<div class="sectionlabel">'+label+'</div><div class="empty"><p>読み込み中です…</p></div>';
+    }
+    if(state.rules.length===0){
+      return '<div class="sectionlabel">'+label+'</div>'+
+        '<div class="empty"><p>まだルールが登録されていません。</p>'+
+        '<button class="primarybtn" data-gomanage="1">ルールを追加する</button></div>';
+    }
+
+    var bodyHtml = '<div id="'+listId+'">';
+    state.rules.forEach(function(r){
+      var open = state.loggingRuleId===r.id && state.loggingDate===dateStr;
+      bodyHtml += '<div class="rulecard" data-rule="'+r.id+'"><div class="toprow">'+
+        (withDrag ? '<span class="draghandle" data-draghandle="'+r.id+'" aria-label="並び替え">'+icon("grip")+'</span>' : '')+
+        '<div class="rulenamewrap"><div class="name">'+escapeHtml(r.name)+'</div><div class="range">'+signed(r.min)+' 〜 '+signed(r.max)+'</div></div>'+
+        '<button class="addbtn" data-open="'+r.id+'" data-opendate="'+dateStr+'">'+(open?"閉じる":"＋ 記録")+'</button></div>';
+      if(open){
+        var v = clamp(state.draftValue, r.min, r.max);
+        bodyHtml += '<div class="entryform">'+
+          '<div class="sliderrow"><button class="stepbtn" data-step="-1">－</button>'+
+          '<input type="range" min="'+r.min+'" max="'+r.max+'" step="1" value="'+v+'" id="rangeInput">'+
+          '<button class="stepbtn" data-step="1">＋</button></div>'+
+          '<div style="text-align:center;margin-bottom:10px;"><span class="valuebox '+(v<0?"neg":v>0?"pos":"")+'" id="valueBox">'+signed(v)+'pt</span></div>'+
+          '<input type="text" class="noteinput" id="noteInput" maxlength="60" placeholder="メモ(任意)">'+
+          '<div class="formbtns"><button class="ghostbtn" id="cancelEntry">キャンセル</button>'+
+          '<button class="primarybtn" id="saveEntry" data-savedate="'+dateStr+'">記録する</button></div>'+
+          '</div>';
+      }
+      bodyHtml += '</div>';
+    });
+    bodyHtml += '</div>';
+
+    if(!collapsible){
+      return '<div class="sectionlabel">'+label+'</div>'+bodyHtml;
+    }
+    var headLeft = label+' <span class="cscount">'+state.rules.length+'</span>';
+    return sectionHeaderHtml(headLeft, opts.openKey, isOpen)+
+      '<div class="collapsebody"'+(isOpen?'':' hidden')+'>'+bodyHtml+'</div>';
+  }
+
+  function rewardsSectionHtml(openKey){
+    openKey = openKey || "rewardsOpen";
+    var collapsible = state.rewardsReady && state.rewards.length>0;
+    var isOpen = collapsible ? (!!state[openKey] || state.addingReward) : true;
+    var bodyHtml = "";
+    if(!state.rewardsReady){
+      bodyHtml = '<div class="empty"><p>読み込み中です…</p></div>';
+    } else if(state.rewards.length===0 && !state.addingReward){
+      bodyHtml = '<div class="empty"><p>ごほうびを登録すると、ポイントで交換できます。</p>'+
+        '<button class="primarybtn" data-addreward-open="1">＋ ごほうびを追加する</button></div>';
+    } else {
+      bodyHtml = '<div id="rewardList">';
+      state.rewards.forEach(function(rw){
+        var can = state.wallet >= rw.cost;
+        bodyHtml += '<div class="rewardrow" data-reward="'+rw.id+'">'+
+          '<span class="draghandle" data-draghandle="'+rw.id+'" aria-label="並び替え">'+icon("grip")+'</span>'+
+          '<div class="rulenamewrap"><div class="name">'+escapeHtml(rw.name)+'</div><div class="cost">'+rw.cost+'pt</div></div>'+
+          '<button class="redeembtn" data-redeem="'+rw.id+'" '+(can?"":"disabled")+'>交換する</button></div>';
+      });
+      bodyHtml += '</div>';
+      if(state.addingReward){
+        bodyHtml += '<div class="ruleaddrow" id="rewardAddRow">'+
+          '<input type="text" class="nameinput" id="newRewardNameHome" placeholder="例: スイーツを食べる" maxlength="40">'+
+          '<input type="number" class="numinput" id="newRewardCostHome" placeholder="pt" value="10">'+
+          '<button class="primarybtn" data-addreward-save="1">追加</button>'+
+          '<button class="ghostbtn" data-addreward-cancel="1">キャンセル</button></div>';
+      } else {
+        bodyHtml += '<button class="addbtn" data-addreward-open="1" style="margin-bottom:9px;">＋ ごほうびを追加</button>';
+      }
+    }
+    if(!collapsible){
+      return '<div class="sectionlabel">ごほうび</div>'+bodyHtml;
+    }
+    var headLeft = 'ごほうび <span class="cscount">'+state.rewards.length+'</span>';
+    return sectionHeaderHtml(headLeft, openKey, isOpen)+
+      '<div class="collapsebody"'+(isOpen?'':' hidden')+'>'+bodyHtml+'</div>';
+  }
+  function bindRewardsSection(openKey){
+    openKey = openKey || "rewardsOpen";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-addreward-open]"), function(btn){
+      btn.onclick = function(){ state.addingReward = true; state[openKey] = true; render(); };
+    });
+    var saveBtn = document.querySelector("[data-addreward-save]");
+    if(saveBtn) saveBtn.onclick = function(){
+      var nameEl = document.getElementById("newRewardNameHome");
+      var costEl = document.getElementById("newRewardCostHome");
+      if(!nameEl || !nameEl.value.trim()) return;
+      state.addingReward = false;
+      addReward(nameEl.value, costEl?costEl.value:0);
+      render();
+    };
+    var cancelBtn = document.querySelector("[data-addreward-cancel]");
+    if(cancelBtn) cancelBtn.onclick = function(){ state.addingReward = false; render(); };
+  }
+
+  function bindRuleLogForm(){
+    Array.prototype.forEach.call(document.querySelectorAll("[data-gomanage]"), function(btn){
+      btn.onclick = function(){ state.view="manage"; render(); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-open]"), function(btn){
+      btn.onclick = function(){
+        var id = btn.getAttribute("data-open");
+        var dateStr = btn.getAttribute("data-opendate");
+        if(state.loggingRuleId===id && state.loggingDate===dateStr){ state.loggingRuleId=null; state.loggingDate=null; }
+        else {
+          var rule = state.rules.filter(function(r){return r.id===id;})[0];
+          state.loggingRuleId = id;
+          state.loggingDate = dateStr;
+          state.editingEntryId = null;
+          state.draftValue = clamp(0, rule.min, rule.max);
+        }
+        render();
+      };
+    });
+    var rangeInput = document.getElementById("rangeInput");
+    var valueBox = document.getElementById("valueBox");
+    function updateValueUI(v){
+      if(valueBox){ valueBox.textContent = signed(v)+"pt"; valueBox.className = "valuebox "+(v<0?"neg":v>0?"pos":""); }
+    }
+    if(rangeInput){
+      rangeInput.oninput = function(){ state.draftValue = Number(rangeInput.value); updateValueUI(state.draftValue); };
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("[data-step]"), function(btn){
+      btn.onclick = function(){
+        var rule = state.rules.filter(function(r){return r.id===state.loggingRuleId;})[0];
+        if(!rule) return;
+        var delta = Number(btn.getAttribute("data-step"));
+        state.draftValue = clamp(state.draftValue+delta, rule.min, rule.max);
+        if(rangeInput) rangeInput.value = state.draftValue;
+        updateValueUI(state.draftValue);
+      };
+    });
+    var cancelBtn = document.getElementById("cancelEntry");
+    if(cancelBtn) cancelBtn.onclick = function(){ state.loggingRuleId=null; state.loggingDate=null; render(); };
+    var saveBtn = document.getElementById("saveEntry");
+    if(saveBtn) saveBtn.onclick = function(){
+      var rule = state.rules.filter(function(r){return r.id===state.loggingRuleId;})[0];
+      if(!rule) return;
+      var dateStr = saveBtn.getAttribute("data-savedate");
+      var noteEl = document.getElementById("noteInput");
+      var entry = {id:uid(), ruleId:rule.id, ruleName:rule.name, points: state.draftValue, note: noteEl?noteEl.value.trim():"", at: nowIso()};
+      saveBtn.disabled = true;
+      addEntry(dateStr, entry, function(){
+        state.loggingRuleId = null;
+        state.loggingDate = null;
+        render();
+      });
+    };
+  }
+
+  function entryRowHtml(dateStr, e){
+    if(state.editingEntryId !== e.id){
+      return '<div class="entryrow" data-entry="'+e.id+'"><div class="info">'+
+        '<div class="rname">'+escapeHtml(e.ruleName)+'</div>'+
+        (e.note ? '<div class="note">'+escapeHtml(e.note)+'</div>' : '')+
+        '</div><div class="right"><span class="pts '+(e.points<0?"neg":"pos")+'">'+signed(e.points)+'</span>'+
+        '<button class="miniclose" data-editentry="'+e.id+'" aria-label="編集">'+icon("pencil")+'</button>'+
+        '<button class="miniclose" data-delentry="'+e.id+'" aria-label="削除">×</button></div></div>';
+    }
+    var rule = state.rules.filter(function(r){ return r.id===e.ruleId; })[0];
+    var min = rule ? rule.min : Math.min(e.points,0)-20;
+    var max = rule ? rule.max : Math.max(e.points,0)+20;
+    var v = clamp(state.editDraftValue, min, max);
+    return '<div class="entryrow editing"><div style="width:100%;">'+
+      '<div class="rname" style="margin-bottom:8px;">'+escapeHtml(e.ruleName)+'</div>'+
+      '<div class="sliderrow"><button class="stepbtn" data-editstep="-1">－</button>'+
+      '<input type="range" min="'+min+'" max="'+max+'" step="1" value="'+v+'" id="editRangeInput">'+
+      '<button class="stepbtn" data-editstep="1">＋</button></div>'+
+      '<div style="text-align:center;margin-bottom:8px;"><span class="valuebox '+(v<0?"neg":v>0?"pos":"")+'" id="editValueBox">'+signed(v)+'pt</span></div>'+
+      '<input type="text" class="noteinput" id="editNoteInput" maxlength="60" placeholder="メモ(任意)" value="'+escapeHtml(e.note||"")+'">'+
+      '<div class="formbtns"><button class="ghostbtn" id="cancelEditEntry">キャンセル</button>'+
+      '<button class="primarybtn" id="saveEditEntry" data-savedate="'+dateStr+'">保存する</button></div>'+
+      '</div></div>';
+  }
+
+  function bindEntryEditControls(){
+    Array.prototype.forEach.call(document.querySelectorAll("[data-editentry]"), function(btn){
+      btn.onclick = function(){
+        var id = btn.getAttribute("data-editentry");
+        var pools = [];
+        if(state.logsByDate[state.currentDateStr]) pools = pools.concat(state.logsByDate[state.currentDateStr].entries);
+        if(state.selectedDetailDate && state.logsByDate[state.selectedDetailDate]) pools = pools.concat(state.logsByDate[state.selectedDetailDate].entries);
+        var entry = pools.filter(function(x){ return x.id===id; })[0];
+        if(!entry) return;
+        state.loggingRuleId = null;
+        state.loggingDate = null;
+        state.editingEntryId = id;
+        state.editDraftValue = entry.points;
+        render();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-delentry]"), function(btn){
+      btn.onclick = function(){
+        var dateStr = state.view==="calendar" ? state.selectedDetailDate : state.currentDateStr;
+        deleteEntry(dateStr, btn.getAttribute("data-delentry"), function(){ render(); });
+      };
+    });
+    var editRangeInput = document.getElementById("editRangeInput");
+    var editValueBox = document.getElementById("editValueBox");
+    function updateEditValueUI(v){
+      if(editValueBox){ editValueBox.textContent = signed(v)+"pt"; editValueBox.className = "valuebox "+(v<0?"neg":v>0?"pos":""); }
+    }
+    if(editRangeInput){ editRangeInput.oninput = function(){ state.editDraftValue = Number(editRangeInput.value); updateEditValueUI(state.editDraftValue); }; }
+    Array.prototype.forEach.call(document.querySelectorAll("[data-editstep]"), function(btn){
+      btn.onclick = function(){
+        var min = editRangeInput ? Number(editRangeInput.min) : -9999, max = editRangeInput ? Number(editRangeInput.max) : 9999;
+        var delta = Number(btn.getAttribute("data-editstep"));
+        state.editDraftValue = clamp(state.editDraftValue+delta, min, max);
+        if(editRangeInput) editRangeInput.value = state.editDraftValue;
+        updateEditValueUI(state.editDraftValue);
+      };
+    });
+    var cancelEdit = document.getElementById("cancelEditEntry");
+    if(cancelEdit) cancelEdit.onclick = function(){ state.editingEntryId=null; render(); };
+    var saveEdit = document.getElementById("saveEditEntry");
+    if(saveEdit) saveEdit.onclick = function(){
+      var dateStr = saveEdit.getAttribute("data-savedate");
+      var noteEl = document.getElementById("editNoteInput");
+      saveEdit.disabled = true;
+      updateEntry(dateStr, state.editingEntryId, state.editDraftValue, noteEl?noteEl.value.trim():"", function(){
+        state.editingEntryId = null;
+        render();
+      });
+    };
+  }
+
+  function cellClassFor(dateStr){
+    if(!state.settings) return "inactive";
+    if(dateStr > todayStr) return "inactive";
+    var dn = dayNetFor(dateStr);
+    if(dn.entries.length===0) return dn.tracked ? "clean" : "pretrack";
+    var net = dn.total;
+    if(net>0){ if(net>15) return "pos3"; if(net>5) return "pos2"; return "pos1"; }
+    if(net<0){ if(net<-20) return "neg3"; if(net<-8) return "neg2"; return "neg1"; }
+    return "zero";
+  }
+  function computeYearSummary(year){
+    if(!state.settings) return {net:0, days:0, recorded:0};
+    var jan1 = year+"-01-01", dec31 = year+"-12-31";
+    var start = state.settings.startedAt > jan1 ? state.settings.startedAt : jan1;
+    var end = todayStr < dec31 ? todayStr : dec31;
+    if(start>end) return {net:0, days:0, recorded:0};
+    var days = daysBetweenInclusive(start,end);
+    var net = days*(state.settings.baseGain||0);
+    var recorded = 0;
+    var cur = fromDateStr(start), endD = fromDateStr(end);
+    while(cur<=endD){
+      var ds = toDateStr(cur);
+      var rec = state.logsByDate[ds];
+      if(rec && rec.entries && rec.entries.length){
+        recorded++;
+        net += rec.entries.reduce(function(s,e){ return s+(typeof e.points==="number"?e.points:0); }, 0);
+      }
+      cur = addDays(cur,1);
+    }
+    return {net:net, days:days, recorded:recorded};
+  }
+
+  // ---------- rendering ----------
+  var root = document.getElementById("view-root");
+  function setActiveTabUI(){
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(btn){
+      btn.classList.toggle("active", btn.getAttribute("data-view")===state.view);
+    });
+  }
+  function render(){
+    setActiveTabUI();
+    if(state.view==="home") renderHome();
+    else if(state.view==="calendar") renderCalendar();
+    else if(state.view==="graph") renderGraph();
+    else renderManage();
+  }
+  function dbBanner(){
+    if(state.dbAvailable===false) return '<div class="banner warn">この端末のブラウザ内だけに保存されます。他の端末には記録が引き継がれません。</div>';
+    return "";
+  }
+
+  // ---- Home ----
+  function renderHome(){
+    var html = "";
+    html += dbBanner();
+    var walletCls = state.wallet<0 ? " negv" : "";
+    html += '<div class="hero"><div class="big'+walletCls+'">'+signed(Math.round(state.wallet))+'</div>'+
+      '<div class="label">現在のポイント</div>'+
+      (state.settings ? '<div class="meta">'+state.settings.startedAt+' から記録中 ・ 何もなければ毎日 +'+state.settings.baseGain+'pt</div>' : '')+
+      '</div>';
+
+    var canNext = state.currentDateStr < todayStr;
+    html += '<div class="daynav">'+
+      '<button class="iconbtn" id="prevDay" aria-label="前の日">'+icon("chevronLeft")+'</button>'+
+      '<div class="datebox"><div class="dateline">'+formatDate(state.currentDateStr)+'</div>'+
+      (state.currentDateStr===todayStr ? '<span class="todaytag">今日</span>' : '')+'</div>'+
+      '<button class="iconbtn" id="nextDay" aria-label="次の日" '+(canNext?'':'disabled')+'>'+icon("chevronRight")+'</button>'+
+      '</div>';
+
+    var dn = dayNetFor(state.currentDateStr);
+    var daynoteTxt = dn.entries.length
+      ? ' (基本 '+signed(dn.base)+'pt + 記録 '+signed(dn.total-dn.base)+'pt)'
+      : (dn.tracked ? ' (記録なし・基本分のみ)' : ' (まだ追跡範囲外の日です)');
+    html += '<div class="daynetline">この日の増減 <b>'+signed(dn.total)+'pt</b>'+daynoteTxt+'</div>';
+
+    html += '<div class="sectionlabel">この日の記録</div>';
+    if(dn.entries.length===0){
+      html += '<div class="empty"><p>まだ記録がありません。</p></div>';
+    } else {
+      dn.entries.forEach(function(e){
+        html += entryRowHtml(state.currentDateStr, e);
+      });
+    }
+
+    html += dayNoteSectionHtml(state.currentDateStr);
+
+    html += ruleLogSectionHtml(state.currentDateStr, {listId:"ruleList", withDrag:true, label:"ルールを記録する", collapsible:true, openKey:"ruleLogOpen"});
+
+    html += rewardsSectionHtml();
+
+    root.innerHTML = html;
+    bindHome();
+  }
+
+  function bindHome(){
+    var prev = document.getElementById("prevDay"), next = document.getElementById("nextDay");
+    if(prev) prev.onclick = function(){ shiftDay(-1); };
+    if(next) next.onclick = function(){ shiftDay(1); };
+    bindRuleLogForm();
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-collapsekey]"), function(btn){
+      btn.onclick = function(){
+        var key = btn.getAttribute("data-collapsekey");
+        state[key] = !state[key];
+        render();
+      };
+    });
+
+    bindRedeemButtons();
+
+    bindDayNote(state.currentDateStr);
+    bindRewardsSection();
+    bindDragReorder("ruleList", ".rulecard", "data-rule", persistRuleOrder);
+    bindDragReorder("rewardList", ".rewardrow", "data-reward", persistRewardOrder);
+    bindEntryEditControls();
+  }
+
+  function bindRedeemButtons(){
+    Array.prototype.forEach.call(document.querySelectorAll("[data-redeem]"), function(btn){
+      btn.onclick = function(){
+        var reward = state.rewards.filter(function(r){return r.id===btn.getAttribute("data-redeem");})[0];
+        if(!reward || state.wallet<reward.cost) return;
+        btn.disabled = true;
+        redeemReward(reward);
+      };
+    });
+  }
+
+  function bindDragReorder(listId, cardSelector, dataAttr, onDrop){
+    var list = document.getElementById(listId);
+    if(!list) return;
+    Array.prototype.forEach.call(list.querySelectorAll("[data-draghandle]"), function(handle){
+      handle.addEventListener("pointerdown", function(ev){
+        if(ev.button!==undefined && ev.button!==0) return;
+        ev.preventDefault();
+        var card = handle.closest(cardSelector);
+        if(!card) return;
+        var rect = card.getBoundingClientRect();
+        var placeholder = document.createElement("div");
+        placeholder.className = "drop-placeholder";
+        placeholder.style.height = rect.height+"px";
+        list.insertBefore(placeholder, card.nextSibling);
+
+        var startY = ev.clientY, origTop = rect.top;
+        card.style.position = "fixed";
+        card.style.top = origTop+"px";
+        card.style.left = rect.left+"px";
+        card.style.width = rect.width+"px";
+        card.style.zIndex = "50";
+        card.classList.add("dragging");
+        try{ handle.setPointerCapture(ev.pointerId); }catch(e){}
+
+        function onMove(mv){
+          var dy = mv.clientY - startY;
+          card.style.top = (origTop+dy)+"px";
+          var siblings = Array.prototype.filter.call(list.children, function(el){ return el!==card && el!==placeholder; });
+          var target = null;
+          for(var i=0;i<siblings.length;i++){
+            var sRect = siblings[i].getBoundingClientRect();
+            if(mv.clientY < sRect.top+sRect.height/2){ target = siblings[i]; break; }
+          }
+          if(!target){ if(list.lastElementChild!==placeholder) list.appendChild(placeholder); }
+          else if(target.previousSibling!==placeholder){ list.insertBefore(placeholder, target); }
+        }
+        function onUp(up){
+          document.removeEventListener("pointermove", onMove);
+          document.removeEventListener("pointerup", onUp);
+          try{ handle.releasePointerCapture(up.pointerId); }catch(e){}
+          list.insertBefore(card, placeholder);
+          list.removeChild(placeholder);
+          card.style.position=""; card.style.top=""; card.style.left=""; card.style.width=""; card.style.zIndex="";
+          card.classList.remove("dragging");
+          var ids = Array.prototype.map.call(list.querySelectorAll(cardSelector), function(el){ return el.getAttribute(dataAttr); });
+          onDrop(ids);
+        }
+        document.addEventListener("pointermove", onMove);
+        document.addEventListener("pointerup", onUp);
+      });
+    });
+  }
+
+  function shiftDay(delta){
+    var d = toDateStr(addDays(fromDateStr(state.currentDateStr), delta));
+    if(d>todayStr) d = todayStr;
+    state.currentDateStr = d;
+    state.loggingRuleId = null;
+    state.loggingDate = null;
+    state.editingEntryId = null;
+    renderHome();
+  }
+
+  // ---- Calendar ----
+  var MONTH_NAMES = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+
+  function mondayOf(dateStr){
+    var d = fromDateStr(dateStr);
+    var dow = d.getDay(); // 0=Sun..6=Sat
+    var diff = dow===0 ? 6 : dow-1;
+    return toDateStr(addDays(d, -diff));
+  }
+  function formatShort(ds){ var d=fromDateStr(ds); return (d.getMonth()+1)+"/"+d.getDate(); }
+  function summaryTileHtml(s, label){
+    return '<div class="yearsummary"><div class="col"><div class="num">'+signed(Math.round(s.net))+'</div><div class="cap">'+label+'</div></div>'+
+      '<div class="col"><div class="num">'+s.recorded+'</div><div class="cap">記録した日数</div></div>'+
+      '<div class="col"><div class="num">'+s.days+'</div><div class="cap">追跡した日数</div></div></div>';
+  }
+  function legendHtml(){
+    return '<div class="legend"><span><span class="sw" style="background:var(--pos-1)"></span>穏やかな加点</span>'+
+      '<span><span class="sw" style="background:var(--pos-3)"></span>大きな加点</span>'+
+      '<span><span class="sw" style="background:var(--neg-1)"></span>軽い減点</span>'+
+      '<span><span class="sw" style="background:var(--neg-3)"></span>大きな減点</span></div>';
+  }
+  function computeRangeSummary(startStr, endStr){
+    if(!state.settings) return {net:0, days:0, recorded:0};
+    var start = state.settings.startedAt > startStr ? state.settings.startedAt : startStr;
+    var end = todayStr < endStr ? todayStr : endStr;
+    if(start>end) return {net:0, days:0, recorded:0};
+    var days = daysBetweenInclusive(start,end);
+    var net = days*(state.settings.baseGain||0);
+    var recorded = 0;
+    var cur = fromDateStr(start), endD = fromDateStr(end);
+    while(cur<=endD){
+      var ds = toDateStr(cur);
+      var rec = state.logsByDate[ds];
+      if(rec && rec.entries && rec.entries.length){
+        recorded++;
+        net += rec.entries.reduce(function(s,e){ return s+(typeof e.points==="number"?e.points:0); }, 0);
+      }
+      cur = addDays(cur,1);
+    }
+    return {net:net, days:days, recorded:recorded};
+  }
+  function computeMonthSummary(year, monthIdx){
+    var start = year+"-"+pad(monthIdx+1)+"-01";
+    var lastDay = new Date(year, monthIdx+1, 0).getDate();
+    var end = year+"-"+pad(monthIdx+1)+"-"+pad(lastDay);
+    return computeRangeSummary(start, end);
+  }
+  function computeWeekSummary(weekStart){
+    var end = toDateStr(addDays(fromDateStr(weekStart),6));
+    return computeRangeSummary(weekStart, end);
+  }
+
+  function renderCalendar(){
+    var html = '<div class="segctl">'+
+      [["week","週"],["month","月"],["year","年"]].map(function(p){
+        return '<button class="segbtn'+(state.calPeriod===p[0]?" active":"")+'" data-calperiod="'+p[0]+'">'+p[1]+'</button>';
+      }).join("")+
+      '</div>';
+    if(state.calPeriod==="week") html += renderWeekView();
+    else if(state.calPeriod==="month") html += renderMonthView();
+    else html += renderYearView();
+    root.innerHTML = html;
+    bindCalendar();
+  }
+
+  function renderYearView(){
+    var atCurrentYear = state.calYear >= new Date().getFullYear();
+    var html = '<div class="yearnav"><button class="iconbtn" id="prevYear">'+icon("chevronLeft")+'</button>'+
+      '<div class="ylabel">'+state.calYear+'年</div>'+
+      '<button class="iconbtn" id="nextYear" '+(atCurrentYear?"disabled":"")+'>'+icon("chevronRight")+'</button></div>';
+    html += summaryTileHtml(computeYearSummary(state.calYear), "この年の増減");
+    html += legendHtml();
+    if(state.selectedDetailDate) html += renderDetailPanelHtml(state.selectedDetailDate);
+    for(var m=0;m<12;m++){ html += renderMonthHtml(state.calYear, m); }
+    return html;
+  }
+
+  function renderMonthView(){
+    var now = new Date();
+    var atCurrentMonth = (state.calYear>now.getFullYear()) || (state.calYear===now.getFullYear() && state.calMonth>=now.getMonth());
+    var html = '<div class="yearnav"><button class="iconbtn" id="prevMonth">'+icon("chevronLeft")+'</button>'+
+      '<div class="ylabel">'+state.calYear+'年 '+MONTH_NAMES[state.calMonth]+'</div>'+
+      '<button class="iconbtn" id="nextMonth" '+(atCurrentMonth?"disabled":"")+'>'+icon("chevronRight")+'</button></div>';
+    html += summaryTileHtml(computeMonthSummary(state.calYear, state.calMonth), "この月の増減");
+    html += legendHtml();
+    if(state.selectedDetailDate) html += renderDetailPanelHtml(state.selectedDetailDate);
+    html += renderMonthHtml(state.calYear, state.calMonth);
+    return html;
+  }
+
+  function renderWeekView(){
+    var weekEnd = toDateStr(addDays(fromDateStr(state.calWeekStart),6));
+    var atCurrentWeek = state.calWeekStart >= mondayOf(todayStr);
+    var html = '<div class="yearnav"><button class="iconbtn" id="prevWeek">'+icon("chevronLeft")+'</button>'+
+      '<div class="ylabel">'+formatShort(state.calWeekStart)+' 〜 '+formatShort(weekEnd)+'</div>'+
+      '<button class="iconbtn" id="nextWeek" '+(atCurrentWeek?"disabled":"")+'>'+icon("chevronRight")+'</button></div>';
+    html += summaryTileHtml(computeWeekSummary(state.calWeekStart), "この週の増減");
+    html += legendHtml();
+    if(state.selectedDetailDate) html += renderDetailPanelHtml(state.selectedDetailDate);
+    html += '<div class="weekhead">'+WD.map(function(w){return "<span>"+w+"</span>";}).join("")+'</div><div class="monthgrid" style="margin-bottom:16px;">';
+    for(var i=0;i<7;i++){
+      var ds = toDateStr(addDays(fromDateStr(state.calWeekStart), i));
+      html += dayCellHtml(ds, fromDateStr(ds).getDate());
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function dayCellHtml(ds, dayNum){
+    var cls = cellClassFor(ds);
+    var extra = "";
+    if(ds===todayStr) extra += " istoday";
+    if(ds===state.selectedDetailDate) extra += " isselected";
+    var netLabel = "";
+    if(cls!=="inactive" && cls!=="clean" && cls!=="pretrack"){
+      netLabel = '<span class="dnet">'+signed(dayNetFor(ds).total)+'</span>';
+    }
+    return '<div class="daycell '+cls+extra+'" data-date="'+(cls==="inactive"?"":ds)+'"><span class="dnum">'+dayNum+'</span>'+netLabel+'</div>';
+  }
+
+  function renderDetailPanelHtml(dateStr){
+    var dn = dayNetFor(dateStr);
+    var html = '<div class="detailpanel"><div class="dhead"><div class="dtitle">'+formatDate(dateStr)+'</div>'+
+      '<button class="closex" id="closeDetail">×</button></div>';
+    if(dn.entries.length===0){
+      html += dn.tracked
+        ? '<div class="empty" style="padding:8px 0;"><p>この日の記録はありません(基本 '+signed(dn.base)+'pt)</p></div>'
+        : '<div class="empty" style="padding:8px 0;"><p>この日はまだ追跡が始まっていません。ここで記録すると、この日からポイント計算が始まります。</p></div>';
+    } else {
+      html += '<div class="daynetline" style="text-align:left;margin-bottom:8px;">この日の増減 <b>'+signed(dn.total)+'pt</b></div>';
+      dn.entries.forEach(function(e){
+        html += entryRowHtml(dateStr, e);
+      });
+    }
+    var redemp = state.redemptionsByDate[dateStr];
+    if(redemp && redemp.length){
+      redemp.forEach(function(r){ html += '<div class="redeemline">交換: '+escapeHtml(r.rewardName)+' (-'+r.cost+'pt)</div>'; });
+    }
+    html += dayNoteSectionHtml(dateStr);
+    html += ruleLogSectionHtml(dateStr, {listId:"ruleListDetail", withDrag:false, label:"この日に記録を追加", collapsible:true, openKey:"calRuleLogOpen"});
+    html += rewardsSectionHtml("calRewardsOpen");
+    html += '</div>';
+    return html;
+  }
+
+  function renderMonthHtml(year, monthIdx){
+    var first = new Date(year, monthIdx, 1);
+    var firstWd = (first.getDay()+6)%7; // Monday-first column index
+    var numDays = new Date(year, monthIdx+1, 0).getDate();
+    var html = '<div class="month"><h3>'+MONTH_NAMES[monthIdx]+'</h3><div class="weekhead">'+
+      WD.map(function(w){return "<span>"+w+"</span>";}).join("")+'</div><div class="monthgrid">';
+    for(var i=0;i<firstWd;i++){ html += '<div class="daycell blank"></div>'; }
+    for(var d=1; d<=numDays; d++){
+      var ds = year+"-"+pad(monthIdx+1)+"-"+pad(d);
+      html += dayCellHtml(ds, d);
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function bindCalendar(){
+    Array.prototype.forEach.call(document.querySelectorAll("[data-collapsekey]"), function(btn){
+      btn.onclick = function(){
+        var key = btn.getAttribute("data-collapsekey");
+        state[key] = !state[key];
+        renderCalendar();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-calperiod]"), function(btn){
+      btn.onclick = function(){
+        var p = btn.getAttribute("data-calperiod");
+        if(p===state.calPeriod) return;
+        state.calPeriod = p;
+        state.selectedDetailDate = null;
+        state.editingEntryId = null;
+        state.loggingRuleId = null;
+        state.loggingDate = null;
+        var now = new Date();
+        if(p==="week") state.calWeekStart = mondayOf(todayStr);
+        if(p==="month"){ state.calMonth = now.getMonth(); state.calYear = now.getFullYear(); }
+        if(p==="year") state.calYear = now.getFullYear();
+        renderCalendar();
+      };
+    });
+
+    var prevY = document.getElementById("prevYear"), nextY = document.getElementById("nextYear");
+    if(prevY) prevY.onclick = function(){ state.calYear -= 1; state.selectedDetailDate=null; state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; renderCalendar(); };
+    if(nextY) nextY.onclick = function(){ if(state.calYear < new Date().getFullYear()){ state.calYear += 1; state.selectedDetailDate=null; state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; renderCalendar(); } };
+
+    var prevM = document.getElementById("prevMonth"), nextM = document.getElementById("nextMonth");
+    if(prevM) prevM.onclick = function(){
+      state.calMonth -= 1;
+      if(state.calMonth<0){ state.calMonth=11; state.calYear -= 1; }
+      state.selectedDetailDate=null; state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; renderCalendar();
+    };
+    if(nextM) nextM.onclick = function(){
+      var now = new Date();
+      if(state.calYear===now.getFullYear() && state.calMonth===now.getMonth()) return;
+      state.calMonth += 1;
+      if(state.calMonth>11){ state.calMonth=0; state.calYear += 1; }
+      state.selectedDetailDate=null; state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; renderCalendar();
+    };
+
+    var prevW = document.getElementById("prevWeek"), nextW = document.getElementById("nextWeek");
+    if(prevW) prevW.onclick = function(){ state.calWeekStart = toDateStr(addDays(fromDateStr(state.calWeekStart), -7)); state.selectedDetailDate=null; state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; renderCalendar(); };
+    if(nextW) nextW.onclick = function(){
+      if(state.calWeekStart >= mondayOf(todayStr)) return;
+      state.calWeekStart = toDateStr(addDays(fromDateStr(state.calWeekStart), 7));
+      state.selectedDetailDate=null; state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; renderCalendar();
+    };
+
+    var closeD = document.getElementById("closeDetail");
+    if(closeD) closeD.onclick = function(){ state.selectedDetailDate=null; state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; renderCalendar(); };
+    Array.prototype.forEach.call(document.querySelectorAll(".daycell[data-date]"), function(cell){
+      var ds = cell.getAttribute("data-date");
+      if(!ds) return;
+      cell.onclick = function(){ state.selectedDetailDate = (state.selectedDetailDate===ds) ? null : ds; state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; renderCalendar(); };
+    });
+    if(state.selectedDetailDate){
+      bindDayNote(state.selectedDetailDate);
+      bindRewardsSection("calRewardsOpen");
+      bindRedeemButtons();
+      bindDragReorder("rewardList", ".rewardrow", "data-reward", persistRewardOrder);
+    }
+    bindEntryEditControls();
+    bindRuleLogForm();
+  }
+
+  // ---- Graph ----
+  var GRAPH_DAY_WINDOW = 14;
+  var GRAPH_WEEK_WINDOW = 12;
+
+  function dayBuckets(offset){
+    var end = toDateStr(addDays(fromDateStr(todayStr), -GRAPH_DAY_WINDOW*offset));
+    var start = toDateStr(addDays(fromDateStr(end), -(GRAPH_DAY_WINDOW-1)));
+    var buckets = [];
+    var cur = fromDateStr(start);
+    for(var i=0;i<GRAPH_DAY_WINDOW;i++){
+      var ds = toDateStr(cur);
+      var dn = dayNetFor(ds);
+      var d = fromDateStr(ds);
+      buckets.push({
+        key: ds,
+        label: (d.getMonth()+1)+"/"+d.getDate(),
+        fullLabel: formatDate(ds),
+        value: dn.tracked ? dn.total : null,
+        tracked: dn.tracked,
+        recorded: dn.entries.length>0
+      });
+      cur = addDays(cur,1);
+    }
+    return {buckets: buckets, rangeLabel: formatShort(start)+" 〜 "+formatShort(end), canNext: offset>0};
+  }
+
+  function weekBuckets(offset){
+    var latestStart = mondayOf(todayStr);
+    var endStart = toDateStr(addDays(fromDateStr(latestStart), -7*GRAPH_WEEK_WINDOW*offset));
+    var startStart = toDateStr(addDays(fromDateStr(endStart), -7*(GRAPH_WEEK_WINDOW-1)));
+    var buckets = [];
+    var cur = fromDateStr(startStart);
+    for(var i=0;i<GRAPH_WEEK_WINDOW;i++){
+      var ws = toDateStr(cur);
+      var we = toDateStr(addDays(cur,6));
+      var s = computeWeekSummary(ws);
+      buckets.push({
+        key: ws,
+        label: formatShort(ws),
+        fullLabel: formatShort(ws)+"〜"+formatShort(we),
+        value: s.days>0 ? s.net : null,
+        tracked: s.days>0,
+        recorded: s.recorded>0
+      });
+      cur = addDays(cur,7);
+    }
+    return {buckets: buckets, rangeLabel: formatShort(startStart)+" 〜 "+formatShort(endStart), canNext: offset>0};
+  }
+
+  function monthBuckets(year){
+    var buckets = [];
+    var now = new Date();
+    for(var m=0;m<12;m++){
+      var future = (year>now.getFullYear()) || (year===now.getFullYear() && m>now.getMonth());
+      var s = computeMonthSummary(year, m);
+      buckets.push({
+        key: year+"-"+pad(m+1),
+        label: (m+1)+"月",
+        fullLabel: year+"年"+MONTH_NAMES[m],
+        value: (!future && s.days>0) ? s.net : null,
+        tracked: !future && s.days>0,
+        recorded: s.recorded>0
+      });
+    }
+    var atCurrentYear = year>=now.getFullYear();
+    return {buckets: buckets, rangeLabel: year+"年", canNext: !atCurrentYear};
+  }
+
+  function yearBuckets(){
+    var now = new Date();
+    var startYear = state.settings ? Number(state.settings.startedAt.slice(0,4)) : now.getFullYear();
+    var buckets = [];
+    for(var y=startYear; y<=now.getFullYear(); y++){
+      var s = computeYearSummary(y);
+      buckets.push({
+        key: String(y),
+        label: String(y),
+        fullLabel: y+"年",
+        value: s.days>0 ? s.net : null,
+        tracked: s.days>0,
+        recorded: s.recorded>0
+      });
+    }
+    return {buckets: buckets, rangeLabel: startYear+"年 〜 "+now.getFullYear()+"年", canNext: false};
+  }
+
+  function chipHtml(cx, y, text, emphasis){
+    var w = Math.max(24, text.length*7.2+12);
+    var h = 17;
+    var x = cx-w/2, ry = y-h/2;
+    var bg = emphasis ? "var(--accent-strong)" : "var(--surface)";
+    var fg = emphasis ? "var(--accent-contrast)" : "var(--text)";
+    return '<g pointer-events="none"><rect x="'+x.toFixed(1)+'" y="'+ry.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+h+'" rx="8.5" fill="'+bg+'"'+(emphasis?"":' stroke="var(--border)" stroke-width="1"')+'/>'+
+      '<text x="'+cx.toFixed(1)+'" y="'+(y+0.5).toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-size="11.5" font-weight="700" font-family="var(--font-mono)" fill="'+fg+'">'+escapeHtml(text)+'</text></g>';
+  }
+
+  function buildBarChartSvg(bucketData, selectedKey){
+    var buckets = bucketData.buckets;
+    var n = buckets.length;
+    var trackedIdxs = [];
+    buckets.forEach(function(b,i){ if(b.value!=null) trackedIdxs.push(i); });
+    var hasData = trackedIdxs.length>0;
+    var values = trackedIdxs.map(function(i){ return buckets[i].value; });
+    var maxV = Math.max(0, hasData?Math.max.apply(null, values):0);
+    var minV = Math.min(0, hasData?Math.min.apply(null, values):0);
+    if(maxV===0 && minV===0){ maxV=1; minV=-1; }
+    var range = maxV - minV;
+    var maxIdx=-1, minIdx=-1;
+    if(hasData){
+      maxIdx = trackedIdxs.reduce(function(a,i){ return buckets[i].value>buckets[a].value?i:a; }, trackedIdxs[0]);
+      minIdx = trackedIdxs.reduce(function(a,i){ return buckets[i].value<buckets[a].value?i:a; }, trackedIdxs[0]);
+    }
+    var W = 328, H = 208;
+    var padL = 4, padR = 4, padTop = 24, chipBelowZone = 24, xLabelH = 18;
+    var padB = chipBelowZone + xLabelH;
+    var plotW = W - padL - padR, plotH = H - padTop - padB;
+    var zeroY = padTop + plotH * (maxV/range);
+    var barGap = n>1 ? Math.min(7, plotW/n*0.28) : 0;
+    var barW = Math.max(3, (plotW - barGap*(n-1))/n);
+    var thinLabels = n>10;
+
+    var svg = '<line x1="'+padL+'" y1="'+zeroY.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+zeroY.toFixed(1)+'" stroke="var(--border)" stroke-width="1"/>';
+    var chips = "";
+    buckets.forEach(function(b, i){
+      var x = padL + i*(barW+barGap);
+      var cx = x + barW/2;
+      if(b.value==null){
+        svg += '<rect x="'+x.toFixed(1)+'" y="'+(zeroY-1).toFixed(1)+'" width="'+barW.toFixed(1)+'" height="2" rx="1" fill="var(--border)"/>';
+      } else {
+        var v = b.value;
+        var barH = Math.max(Math.abs(v)/range * plotH, 1.5);
+        var y = v>=0 ? zeroY - barH : zeroY;
+        var isSel = b.key===selectedKey;
+        var fill = v>=0 ? "var(--accent)" : "var(--danger)";
+        svg += '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+barH.toFixed(1)+'" rx="'+Math.min(4,barW/2).toFixed(1)+'" fill="'+fill+'"'+(isSel?' stroke="var(--text)" stroke-width="1.5"':'')+'/>';
+        var isExtreme = (i===maxIdx && v>0) || (i===minIdx && v<0);
+        if(isSel || isExtreme){
+          var labelY = v>=0 ? (y-11) : (y+barH+12);
+          chips += chipHtml(cx, labelY, signed(Math.round(v)), isSel);
+        }
+      }
+      var showXLabel = !thinLabels || i%2===0 || i===n-1;
+      if(showXLabel){
+        svg += '<text x="'+cx.toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" font-family="var(--font-body)" fill="var(--text-muted)">'+escapeHtml(b.label)+'</text>';
+      }
+      svg += '<rect class="barhit" data-barkey="'+escapeHtml(b.key)+'" x="'+x.toFixed(1)+'" y="0" width="'+barW.toFixed(1)+'" height="'+H+'" fill="transparent"><title>'+escapeHtml(b.fullLabel)+(b.value==null?"":": "+signed(Math.round(b.value))+"pt")+'</title></rect>';
+    });
+    return '<svg viewBox="0 0 '+W+' '+H+'" class="barchart" style="width:100%;height:208px;display:block;">'+svg+chips+'</svg>';
+  }
+
+  function navRowHtml(label, canPrev, canNext){
+    return '<div class="yearnav"><button class="iconbtn" id="graphPrev" '+(canPrev?"":"disabled")+'>'+icon("chevronLeft")+'</button>'+
+      '<div class="ylabel">'+label+'</div>'+
+      '<button class="iconbtn" id="graphNext" '+(canNext?"":"disabled")+'>'+icon("chevronRight")+'</button></div>';
+  }
+
+  function graphInfoText(bucketData, selectedKey){
+    if(!selectedKey) return '<div class="graphinfo muted">バーをタップすると、その日・週・月・年の詳細が見られます</div>';
+    var b = bucketData.buckets.filter(function(x){ return x.key===selectedKey; })[0];
+    if(!b) return "";
+    if(b.value==null) return '<div class="graphinfo"><b>'+escapeHtml(b.fullLabel)+'</b> ・ まだ追跡範囲外です</div>';
+    return '<div class="graphinfo"><b>'+escapeHtml(b.fullLabel)+'</b> ・ '+signed(Math.round(b.value))+'pt'+(b.recorded===false?' (記録なし・基本分のみ)':'')+'</div>';
+  }
+
+  function renderGraph(){
+    var html = '<div class="segctl">'+
+      [["day","日"],["week","週"],["month","月"],["year","年"]].map(function(p){
+        return '<button class="segbtn'+(state.graphPeriod===p[0]?" active":"")+'" data-graphperiod="'+p[0]+'">'+p[1]+'</button>';
+      }).join("")+
+      '</div>';
+
+    var bucketData, summary, navHtml = "";
+    if(state.graphPeriod==="day"){
+      bucketData = dayBuckets(state.graphDayOffset);
+      navHtml = navRowHtml(bucketData.rangeLabel, true, bucketData.canNext);
+      var tDays = bucketData.buckets.filter(function(b){ return b.tracked; });
+      summary = tDays.length ? computeRangeSummary(tDays[0].key, tDays[tDays.length-1].key) : {net:0,days:0,recorded:0};
+    } else if(state.graphPeriod==="week"){
+      bucketData = weekBuckets(state.graphWeekOffset);
+      navHtml = navRowHtml(bucketData.rangeLabel, true, bucketData.canNext);
+      var tWeeks = bucketData.buckets.filter(function(b){ return b.tracked; });
+      summary = tWeeks.length ? computeRangeSummary(tWeeks[0].key, toDateStr(addDays(fromDateStr(tWeeks[tWeeks.length-1].key),6))) : {net:0,days:0,recorded:0};
+    } else if(state.graphPeriod==="month"){
+      bucketData = monthBuckets(state.graphMonthYear);
+      navHtml = navRowHtml(bucketData.rangeLabel, true, bucketData.canNext);
+      summary = computeRangeSummary(state.graphMonthYear+"-01-01", state.graphMonthYear+"-12-31");
+    } else {
+      bucketData = yearBuckets();
+      summary = state.settings ? computeRangeSummary(state.settings.startedAt, todayStr) : {net:0,days:0,recorded:0};
+    }
+
+    html += navHtml;
+    html += summaryTileHtml(summary, "この期間の増減");
+    html += '<div class="graphwrap">'+buildBarChartSvg(bucketData, state.graphSelectedKey)+'</div>';
+    html += graphInfoText(bucketData, state.graphSelectedKey);
+
+    root.innerHTML = html;
+    bindGraph(bucketData);
+  }
+
+  function bindGraph(bucketData){
+    Array.prototype.forEach.call(document.querySelectorAll("[data-graphperiod]"), function(btn){
+      btn.onclick = function(){
+        var p = btn.getAttribute("data-graphperiod");
+        if(p===state.graphPeriod) return;
+        state.graphPeriod = p;
+        state.graphSelectedKey = null;
+        renderGraph();
+      };
+    });
+    var prev = document.getElementById("graphPrev"), next = document.getElementById("graphNext");
+    if(prev) prev.onclick = function(){
+      state.graphSelectedKey = null;
+      if(state.graphPeriod==="day") state.graphDayOffset += 1;
+      else if(state.graphPeriod==="week") state.graphWeekOffset += 1;
+      else if(state.graphPeriod==="month") state.graphMonthYear -= 1;
+      renderGraph();
+    };
+    if(next) next.onclick = function(){
+      state.graphSelectedKey = null;
+      if(state.graphPeriod==="day"){ if(state.graphDayOffset>0) state.graphDayOffset -= 1; }
+      else if(state.graphPeriod==="week"){ if(state.graphWeekOffset>0) state.graphWeekOffset -= 1; }
+      else if(state.graphPeriod==="month"){ var now=new Date(); if(state.graphMonthYear<now.getFullYear()) state.graphMonthYear += 1; }
+      renderGraph();
+    };
+    Array.prototype.forEach.call(document.querySelectorAll(".barhit"), function(el){
+      el.onclick = function(){
+        var key = el.getAttribute("data-barkey");
+        state.graphSelectedKey = (state.graphSelectedKey===key) ? null : key;
+        renderGraph();
+      };
+    });
+  }
+
+  // ---- Manage ----
+  function renderManage(){
+    var html = "";
+    html += dbBanner();
+    html += '<div class="sectionlabel">設定</div>';
+    html += '<div class="settingsrow"><div class="lbl">1日の基本ポイント<span class="sub">何もなければ毎日この分だけ加算されます</span></div>'+
+      '<div style="display:flex;align-items:center;gap:8px;">'+
+      '<input type="number" id="baseGainInput" value="'+(state.settings?state.settings.baseGain:20)+'">'+
+      '<button class="addbtn" id="saveBaseGainBtn">保存</button></div></div>'+
+      '<div id="baseGainStatus" style="text-align:right;font-size:11px;color:var(--accent);min-height:14px;margin:-4px 2px 10px 0;"></div>';
+    html += '<div class="settingsrow"><div class="lbl">記録開始日<span class="sub">この日からポイント計算が始まっています</span></div>'+
+      '<div style="font-family:var(--font-mono);font-size:13px;">'+(state.settings?state.settings.startedAt:"-")+'</div></div>';
+
+    html += '<div class="sectionlabel">ルール</div>';
+    html += '<div class="ruleaddrow">'+
+      '<input type="text" class="nameinput" id="newRuleName" placeholder="例: 集中して勉強できたか" maxlength="40">'+
+      '<input type="number" class="numinput" id="newRuleMin" placeholder="最小" value="-10">'+
+      '<input type="number" class="numinput" id="newRuleMax" placeholder="最大" value="0">'+
+      '<button class="primarybtn" id="addRuleBtn">追加</button></div>';
+    if(state.rulesReady && state.rules.length===0){
+      html += '<div class="empty"><p>まだルールがありません。</p></div>';
+    }
+    state.rules.forEach(function(r){
+      var editing = state.editingRuleId===r.id;
+      html += '<div class="rulerow" data-id="'+r.id+'">';
+      if(editing){
+        html += '<input type="text" class="nameinput" id="edName_'+r.id+'" value="'+escapeHtml(r.name)+'" maxlength="40">'+
+          '<input type="number" class="numinput" id="edMin_'+r.id+'" value="'+r.min+'">'+
+          '<input type="number" class="numinput" id="edMax_'+r.id+'" value="'+r.max+'">'+
+          '<div class="actions"><button class="iconbtn" data-saveRule="'+r.id+'">✓</button></div>';
+      } else {
+        html += '<div class="name">'+escapeHtml(r.name)+'<div class="rangetxt">'+signed(r.min)+' 〜 '+signed(r.max)+'</div></div>'+
+          '<div class="actions"><button class="iconbtn" data-editRule="'+r.id+'" aria-label="編集">'+icon("pencil")+'</button>'+
+          '<button class="iconbtn" data-delRule="'+r.id+'" aria-label="削除">'+icon("trash")+'</button></div>';
+      }
+      html += '</div>';
+      if(state.confirmDeleteRuleId===r.id){
+        html += '<div class="confirmbar">「'+escapeHtml(r.name)+'」を削除しますか?過去の記録は残ります。'+
+          '<button class="yes" data-confirmRuleYes="'+r.id+'">削除する</button>'+
+          '<button class="no" data-confirmRuleNo="'+r.id+'">やめる</button></div>';
+      }
+    });
+
+    html += '<div class="sectionlabel">ごほうび</div>';
+    html += '<div class="ruleaddrow">'+
+      '<input type="text" class="nameinput" id="newRewardName" placeholder="例: スイーツを食べる" maxlength="40">'+
+      '<input type="number" class="numinput" id="newRewardCost" placeholder="pt" value="10">'+
+      '<button class="primarybtn" id="addRewardBtn">追加</button></div>';
+    if(state.rewardsReady && state.rewards.length===0){
+      html += '<div class="empty"><p>まだごほうびがありません。</p></div>';
+    }
+    state.rewards.forEach(function(rw){
+      var editing = state.editingRewardId===rw.id;
+      html += '<div class="rulerow" data-id="'+rw.id+'">';
+      if(editing){
+        html += '<input type="text" class="nameinput" id="erName_'+rw.id+'" value="'+escapeHtml(rw.name)+'" maxlength="40">'+
+          '<input type="number" class="numinput" id="erCost_'+rw.id+'" value="'+rw.cost+'">'+
+          '<div class="actions"><button class="iconbtn" data-saveReward="'+rw.id+'">✓</button></div>';
+      } else {
+        html += '<div class="name">'+escapeHtml(rw.name)+'<div class="rangetxt">'+rw.cost+'pt</div></div>'+
+          '<div class="actions"><button class="iconbtn" data-editReward="'+rw.id+'" aria-label="編集">'+icon("pencil")+'</button>'+
+          '<button class="iconbtn" data-delReward="'+rw.id+'" aria-label="削除">'+icon("trash")+'</button></div>';
+      }
+      html += '</div>';
+      if(state.confirmDeleteRewardId===rw.id){
+        html += '<div class="confirmbar">「'+escapeHtml(rw.name)+'」を削除しますか?'+
+          '<button class="yes" data-confirmRewardYes="'+rw.id+'">削除する</button>'+
+          '<button class="no" data-confirmRewardNo="'+rw.id+'">やめる</button></div>';
+      }
+    });
+
+    root.innerHTML = html;
+    bindManage();
+  }
+
+  function bindManage(){
+    var bg = document.getElementById("baseGainInput");
+    var bgStatus = document.getElementById("baseGainStatus");
+    function saveBaseGainNow(){
+      if(!bg) return;
+      updateBaseGain(bg.value);
+      if(bgStatus){
+        bgStatus.textContent = "保存しました";
+        clearTimeout(saveBaseGainNow._t);
+        saveBaseGainNow._t = setTimeout(function(){ if(bgStatus) bgStatus.textContent=""; }, 1500);
+      }
+    }
+    if(bg) bg.onchange = saveBaseGainNow;
+    var saveBgBtn = document.getElementById("saveBaseGainBtn");
+    if(saveBgBtn) saveBgBtn.onclick = saveBaseGainNow;
+
+    var addRuleBtn = document.getElementById("addRuleBtn");
+    if(addRuleBtn) addRuleBtn.onclick = function(){
+      addRule(document.getElementById("newRuleName").value, document.getElementById("newRuleMin").value, document.getElementById("newRuleMax").value);
+      document.getElementById("newRuleName").value="";
+    };
+    Array.prototype.forEach.call(document.querySelectorAll("[data-editRule]"), function(btn){
+      btn.onclick = function(){ state.editingRuleId = btn.getAttribute("data-editRule"); state.confirmDeleteRuleId=null; renderManage(); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-saveRule]"), function(btn){
+      btn.onclick = function(){
+        var id = btn.getAttribute("data-saveRule");
+        renameRuleFull(id, document.getElementById("edName_"+id).value, document.getElementById("edMin_"+id).value, document.getElementById("edMax_"+id).value);
+        state.editingRuleId = null;
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-delRule]"), function(btn){
+      btn.onclick = function(){ state.confirmDeleteRuleId = btn.getAttribute("data-delRule"); renderManage(); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-confirmRuleYes]"), function(btn){
+      btn.onclick = function(){ var id=btn.getAttribute("data-confirmRuleYes"); state.confirmDeleteRuleId=null; deleteRule(id); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-confirmRuleNo]"), function(btn){
+      btn.onclick = function(){ state.confirmDeleteRuleId=null; renderManage(); };
+    });
+
+    var addRewardBtn = document.getElementById("addRewardBtn");
+    if(addRewardBtn) addRewardBtn.onclick = function(){
+      addReward(document.getElementById("newRewardName").value, document.getElementById("newRewardCost").value);
+      document.getElementById("newRewardName").value="";
+    };
+    Array.prototype.forEach.call(document.querySelectorAll("[data-editReward]"), function(btn){
+      btn.onclick = function(){ state.editingRewardId = btn.getAttribute("data-editReward"); state.confirmDeleteRewardId=null; renderManage(); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-saveReward]"), function(btn){
+      btn.onclick = function(){
+        var id = btn.getAttribute("data-saveReward");
+        renameRewardFull(id, document.getElementById("erName_"+id).value, document.getElementById("erCost_"+id).value);
+        state.editingRewardId = null;
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-delReward]"), function(btn){
+      btn.onclick = function(){ state.confirmDeleteRewardId = btn.getAttribute("data-delReward"); renderManage(); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-confirmRewardYes]"), function(btn){
+      btn.onclick = function(){ var id=btn.getAttribute("data-confirmRewardYes"); state.confirmDeleteRewardId=null; deleteReward(id); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-confirmRewardNo]"), function(btn){
+      btn.onclick = function(){ state.confirmDeleteRewardId=null; renderManage(); };
+    });
+  }
+
+  // ---------- subscriptions ----------
+  function subscribeRules(){
+    if(state.unsubRules) state.unsubRules();
+    state.unsubRules = state.db.collection("rules").orderBy("createdAt","asc").onSnapshot(function(snap){
+      var list = snap.docs.map(function(d){ var data=d.data()||{}; return {id:d.id, name:data.name||"", min:typeof data.min==="number"?data.min:0, max:typeof data.max==="number"?data.max:0, order: typeof data.order==="number"?data.order:undefined, createdAt:data.createdAt||""}; });
+      state.rules = normalizeAndSortRules(list);
+      migrateRuleOrderIfNeeded(state.rules);
+      state.rulesReady = true;
+      render();
+    }, function(err){ console.error("rules sub error", err); });
+  }
+  function subscribeRewards(){
+    if(state.unsubRewards) state.unsubRewards();
+    state.unsubRewards = state.db.collection("rewards").orderBy("createdAt","asc").onSnapshot(function(snap){
+      var list = snap.docs.map(function(d){ var data=d.data()||{}; return {id:d.id, name:data.name||"", cost:typeof data.cost==="number"?data.cost:0, order: typeof data.order==="number"?data.order:undefined, createdAt:data.createdAt||""}; });
+      state.rewards = normalizeAndSortRewards(list);
+      migrateRewardOrderIfNeeded(state.rewards);
+      state.rewardsReady = true;
+      render();
+    }, function(err){ console.error("rewards sub error", err); });
+  }
+
+  // ---------- tab wiring ----------
+  var TAB_META = {home:["home","ホーム"], calendar:["calendar","カレンダー"], graph:["graph","グラフ"], manage:["manage","管理"]};
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(btn){
+    var meta = TAB_META[btn.getAttribute("data-view")];
+    if(meta) btn.innerHTML = icon(meta[0])+"<span>"+meta[1]+"</span>";
+    btn.onclick = function(){ state.view = btn.getAttribute("data-view"); state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; render(); };
+  });
+
+  // ---------- boot ----------
+  function boot(){
+    render();
+    function afterBackendReady(){
+      ensureSettings().then(function(){
+        return Promise.all([refreshLogsCache(), refreshRedemptionsCache()]);
+      }).then(function(){
+        recomputeWallet();
+        render();
+      });
+    }
+    if(window.claude && window.claude.use){
+      window.claude.use("db").then(function(db){
+        if(db){
+          state.db = db; state.dbAvailable = true;
+          subscribeRules(); subscribeRewards();
+          afterBackendReady();
+        } else {
+          state.dbAvailable = false;
+          syncLocalRules(); syncLocalRewards();
+          afterBackendReady();
+        }
+      }).catch(function(){
+        state.dbAvailable = false;
+        syncLocalRules(); syncLocalRewards();
+        afterBackendReady();
+      });
+    } else {
+      state.dbAvailable = false;
+      syncLocalRules(); syncLocalRewards();
+      afterBackendReady();
+    }
+  }
+  boot();
+})();
+</script>
