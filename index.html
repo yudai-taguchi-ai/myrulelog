@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>マイルールログ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -41,6 +43,7 @@
     --pos-1:#1D2E27; --pos-2:#3E7863; --pos-3:#8FD4BA; --pos-3-contrast:#0D1310;
     --neg-1:#2E2119; --neg-2:#8A5330; --neg-3:#E28E6E; --neg-3-contrast:#211008;
   }
+  [hidden]{display:none!important;}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{overscroll-behavior-y:contain;}
   body{background:var(--bg);color:var(--text);font-family:var(--font-body);margin:0;padding-inline:16px;min-height:100%;}
@@ -193,6 +196,9 @@
   .graphinfo.muted{color:var(--text-muted);}
   .legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;font-size:10.5px;color:var(--text-muted);}
   .legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px;}
+  .loginbox{padding-top:8px;}
+  .loginnote{font-size:12.5px;color:var(--text-muted);line-height:1.6;margin:0 0 12px;}
+  .loginmsg{font-size:12.5px;color:var(--danger);margin-top:10px;min-height:18px;line-height:1.5;}
 </style>
 
 <div id="app">
@@ -212,6 +218,7 @@
   <button class="tab" data-view="manage" role="tab" aria-label="管理"></button>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 <script>
 (function(){
   "use strict";
@@ -249,8 +256,7 @@
   // ---------- state ----------
   var todayStr = toDateStr(new Date());
   var state = {
-    dbAvailable: null,
-    db: null,
+    user: null, authReady: false, errorMsg: "", legacyData: null, importing: false,
     rules: [], rulesReady:false,
     rewards: [], rewardsReady:false,
     settings: {baseGain:20, startedAt: todayStr, createdAt: nowIso()},
@@ -278,76 +284,76 @@
     editingRuleId: null, confirmDeleteRuleId: null,
     editingRewardId: null, confirmDeleteRewardId: null,
     ruleLogOpen: false, rewardsOpen: false, calRuleLogOpen: false, calRewardsOpen: false,
-    addingReward: false,
-    unsubRules: null, unsubRewards: null
+    addingReward: false
   };
 
-  // ---------- local-storage fallback ----------
-  var LS_KEY = "myrulelog_v2";
-  function lsLoad(){
-    try{
-      var raw = localStorage.getItem(LS_KEY);
-      var data = raw ? JSON.parse(raw) : null;
-      if(!data || typeof data!=="object") data = {};
-      if(!data.rules) data.rules=[];
-      if(!data.rewards) data.rewards=[];
-      if(!data.logs) data.logs={};
-      if(!data.redemptions) data.redemptions=[];
-      if(!data.settings) data.settings=null;
-      return data;
-    }catch(e){ return {rules:[],rewards:[],logs:{},redemptions:[],settings:null}; }
-  }
-  function lsSave(data){ try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){} }
+  // ---------- Supabase ----------
+  // publishable key はブラウザに置いてよい公開用の鍵。データは RLS で「ログインした本人の行だけ」に制限している。
+  var SUPABASE_URL = "https://kpqtlssiyojpgyypsibj.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_JyXAx3AUoSZ5_Z4vkqqizQ_Rt_flZaT";
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  function sortByCreated(list){ return list.slice().sort(function(a,b){ return (a.createdAt||"").localeCompare(b.createdAt||""); }); }
+  function fail(e){
+    console.error(e);
+    state.errorMsg = "保存・読み込みに失敗しました。通信状況を確認して、画面を再読み込みしてください。";
+    render();
+  }
+  // supabase-js の結果 {data, error} を、失敗なら例外として扱う形にそろえる
+  function q(p){ return p.then(function(res){ if(res.error) throw res.error; return res.data; }); }
+  // Supabase は1回で最大1000行までしか返さないので、1000行ずつ全部取る
+  function fetchAll(table, columns, orderCol){
+    var PAGE = 1000, out = [];
+    function page(from){
+      return q(sb.from(table).select(columns).order(orderCol,{ascending:true}).order("id",{ascending:true}).range(from, from+PAGE-1))
+        .then(function(rows){ out = out.concat(rows); return rows.length===PAGE ? page(from+PAGE) : out; });
+    }
+    return page(0);
+  }
+
+  function ruleFromRow(r){ return {id:r.id, name:r.name, min:r.min_points, max:r.max_points, order:r.sort_order, createdAt:r.created_at}; }
+  function rewardFromRow(r){ return {id:r.id, name:r.name, cost:r.cost, order:r.sort_order, createdAt:r.created_at}; }
+  function sortByOrder(list){ return list.slice().sort(function(a,b){ return (a.order-b.order) || (a.createdAt||"").localeCompare(b.createdAt||""); }); }
+
+  function loadRules(){
+    return q(sb.from("rules").select("*")).then(function(rows){
+      state.rules = sortByOrder(rows.map(ruleFromRow)); state.rulesReady = true; render();
+    }).catch(fail);
+  }
+  function loadRewards(){
+    return q(sb.from("rewards").select("*")).then(function(rows){
+      state.rewards = sortByOrder(rows.map(rewardFromRow)); state.rewardsReady = true; render();
+    }).catch(fail);
+  }
 
   // ---------- caches / wallet ----------
-  function buildLogsCacheFromDocs(docs){
-    var map = {}, sum = 0;
-    docs.forEach(function(d){
-      if(!d || !d.date) return;
-      var entries = Array.isArray(d.entries) ? d.entries : [];
-      map[d.date] = {entries: entries, note: typeof d.note==="string" ? d.note : ""};
-      entries.forEach(function(e){ sum += (typeof e.points==="number" ? e.points : 0); });
-    });
-    return {map:map, sum:sum};
-  }
-  function buildRedemptionsCacheFromDocs(docs){
-    var map = {}, sum = 0;
-    docs.forEach(function(d){
-      if(!d || !d.date) return;
-      if(!map[d.date]) map[d.date]=[];
-      map[d.date].push({rewardName:d.rewardName, cost:d.cost});
-      sum += (typeof d.cost==="number" ? d.cost : 0);
-    });
-    return {map:map, sum:sum};
-  }
-
   function refreshLogsCache(){
-    if(state.dbAvailable){
-      return state.db.collection("logs").get().then(function(snap){
-        var res = buildLogsCacheFromDocs(snap.docs.map(function(d){return d.data();}));
-        state.logsByDate = res.map; state.loggedSumAll = res.sum; state.logsReady = true;
-      }).catch(function(e){ console.error(e); });
-    } else {
-      var data = lsLoad();
-      var res = buildLogsCacheFromDocs(Object.keys(data.logs).map(function(k){ return data.logs[k]; }));
-      state.logsByDate = res.map; state.loggedSumAll = res.sum; state.logsReady = true;
-      return Promise.resolve();
-    }
+    return Promise.all([
+      fetchAll("entries", "id,date,rule_id,rule_name,points,note,created_at", "created_at"),
+      q(sb.from("day_notes").select("date,note"))
+    ]).then(function(res){
+      var map = {}, sum = 0;
+      res[0].forEach(function(e){
+        if(!map[e.date]) map[e.date] = {entries:[], note:""};
+        map[e.date].entries.push({id:e.id, ruleId:e.rule_id, ruleName:e.rule_name, points:e.points, note:e.note||"", at:e.created_at});
+        sum += e.points;
+      });
+      res[1].forEach(function(n){
+        if(!map[n.date]) map[n.date] = {entries:[], note:""};
+        map[n.date].note = n.note || "";
+      });
+      state.logsByDate = map; state.loggedSumAll = sum; state.logsReady = true;
+    }).catch(fail);
   }
   function refreshRedemptionsCache(){
-    if(state.dbAvailable){
-      return state.db.collection("redemptions").get().then(function(snap){
-        var res = buildRedemptionsCacheFromDocs(snap.docs.map(function(d){return d.data();}));
-        state.redemptionsByDate = res.map; state.redeemedSumAll = res.sum;
-      }).catch(function(e){ console.error(e); });
-    } else {
-      var data = lsLoad();
-      var res = buildRedemptionsCacheFromDocs(data.redemptions);
-      state.redemptionsByDate = res.map; state.redeemedSumAll = res.sum;
-      return Promise.resolve();
-    }
+    return fetchAll("redemptions", "id,date,reward_name,cost,redeemed_at", "redeemed_at").then(function(rows){
+      var map = {}, sum = 0;
+      rows.forEach(function(d){
+        if(!map[d.date]) map[d.date] = [];
+        map[d.date].push({rewardName:d.reward_name, cost:d.cost});
+        sum += d.cost;
+      });
+      state.redemptionsByDate = map; state.redeemedSumAll = sum;
+    }).catch(fail);
   }
   function recomputeWallet(){
     if(!state.settings) { state.wallet = 0; return; }
@@ -357,240 +363,173 @@
     state.wallet = base + state.loggedSumAll - state.redeemedSumAll;
   }
 
+  // ---------- settings ----------
   function ensureSettings(){
-    // state.settings already has a safe default from state init, so the UI is
-    // never blocked on this resolving. This just reconciles with the backend,
-    // and never clobbers a value the user already changed locally (settingsDirty)
-    // while this was still in flight.
-    if(state.dbAvailable){
-      var ref = state.db.doc("meta/settings");
-      return ref.get().then(function(snap){
-        if(state.settingsDirty){ return ref.set(state.settings); }
-        if(snap.exists){ state.settings = snap.data(); }
-        else{ return ref.set(state.settings); }
-      });
-    } else {
-      var data = lsLoad();
-      if(state.settingsDirty || !data.settings){ data.settings = state.settings; lsSave(data); }
-      else { state.settings = data.settings; }
-      return Promise.resolve();
-    }
+    // 設定の行がまだ無ければ作る。読み込み中に基本ポイントを変えていたら(settingsDirty)、その値を優先する
+    return q(sb.from("settings").select("base_gain,started_at,created_at").maybeSingle()).then(function(row){
+      if(!row){
+        return q(sb.from("settings").insert({base_gain: state.settings.baseGain, started_at: state.settings.startedAt}));
+      }
+      var dirtyGain = state.settingsDirty ? state.settings.baseGain : null;
+      state.settings = {baseGain: row.base_gain, startedAt: row.started_at, createdAt: row.created_at};
+      if(dirtyGain!=null && dirtyGain!==row.base_gain){
+        state.settings.baseGain = dirtyGain;
+        return q(sb.from("settings").update({base_gain: dirtyGain}).eq("user_id", state.user.id));
+      }
+    }).catch(fail);
   }
   function updateBaseGain(val){
-    val = Number(val); if(!isFinite(val)) return;
-    if(!state.settings) state.settings = {baseGain:val, startedAt: todayStr, createdAt: nowIso()};
-    else state.settings.baseGain = val;
+    val = Math.round(Number(val)); if(!isFinite(val)) return;
+    state.settings.baseGain = val;
     state.settingsDirty = true;
-    if(state.dbAvailable){ state.db.doc("meta/settings").update({baseGain:val}).catch(function(e){console.error(e);}); }
-    else { var data = lsLoad(); data.settings = state.settings; lsSave(data); }
+    q(sb.from("settings").update({base_gain: val}).eq("user_id", state.user.id)).catch(fail);
     recomputeWallet();
   }
-
-  // ---------- rules / rewards CRUD ----------
-  function addRule(name,min,max){
-    name = (name||"").trim(); if(!name) return;
-    min = Number(min); max = Number(max);
-    if(!isFinite(min)) min=0; if(!isFinite(max)) max=0;
-    if(min>max){ var t=min; min=max; max=t; }
-    var body = {name:name, min:min, max:max, order: state.rules.length, createdAt: nowIso()};
-    if(state.dbAvailable){ state.db.collection("rules").add(body).catch(function(e){console.error(e);}); }
-    else { var data=lsLoad(); body.id=uid(); data.rules.push(body); lsSave(data); syncLocalRules(); render(); }
-  }
-  function normalizeAndSortRules(list){
-    var hasAllOrder = list.length>0 && list.every(function(r){ return typeof r.order==="number"; });
-    return hasAllOrder ? list.slice().sort(function(a,b){ return a.order-b.order; }) : sortByCreated(list);
-  }
-  function migrateRuleOrderIfNeeded(sortedList){
-    var needsMigration = sortedList.some(function(r){ return typeof r.order!=="number"; });
-    if(!needsMigration) return;
-    sortedList.forEach(function(r, idx){
-      if(typeof r.order==="number") return;
-      r.order = idx;
-      if(state.dbAvailable){ state.db.doc("rules/"+r.id).update({order:idx}).catch(function(e){console.error(e);}); }
-      else { var data=lsLoad(); data.rules.forEach(function(rr){ if(rr.id===r.id) rr.order=idx; }); lsSave(data); }
-    });
-  }
-  function persistRuleOrder(orderedIds){
-    var byId = {}; state.rules.forEach(function(r){ byId[r.id]=r; });
-    var newList = orderedIds.map(function(id){ return byId[id]; }).filter(Boolean);
-    newList.forEach(function(r, idx){ r.order = idx; });
-    state.rules = newList;
-    if(state.dbAvailable){
-      orderedIds.forEach(function(id, idx){ state.db.doc("rules/"+id).update({order:idx}).catch(function(e){console.error(e);}); });
-    } else {
-      var data = lsLoad();
-      orderedIds.forEach(function(id, idx){ data.rules.forEach(function(r){ if(r.id===id) r.order=idx; }); });
-      lsSave(data);
-    }
-  }
-  function renameRuleFull(id,name,min,max){
-    name=(name||"").trim(); if(!name) return;
-    min=Number(min); max=Number(max);
-    if(!isFinite(min)) min=0; if(!isFinite(max)) max=0;
-    if(min>max){ var t=min; min=max; max=t; }
-    if(state.dbAvailable){ state.db.doc("rules/"+id).update({name:name,min:min,max:max}).catch(function(e){console.error(e);}); }
-    else { var data=lsLoad(); data.rules.forEach(function(r){ if(r.id===id){ r.name=name; r.min=min; r.max=max; } }); lsSave(data); syncLocalRules(); render(); }
-  }
-  function deleteRule(id){
-    if(state.dbAvailable){ state.db.doc("rules/"+id).delete().catch(function(e){console.error(e);}); }
-    else { var data=lsLoad(); data.rules=data.rules.filter(function(r){return r.id!==id;}); lsSave(data); syncLocalRules(); render(); }
-  }
-  function addReward(name,cost){
-    name=(name||"").trim(); if(!name) return;
-    cost = Number(cost); if(!isFinite(cost)||cost<0) cost=0;
-    var body = {name:name, cost:cost, order: state.rewards.length, createdAt: nowIso()};
-    if(state.dbAvailable){ state.db.collection("rewards").add(body).catch(function(e){console.error(e);}); }
-    else { var data=lsLoad(); body.id=uid(); data.rewards.push(body); lsSave(data); syncLocalRewards(); render(); }
-  }
-  function normalizeAndSortRewards(list){
-    var hasAllOrder = list.length>0 && list.every(function(r){ return typeof r.order==="number"; });
-    return hasAllOrder ? list.slice().sort(function(a,b){ return a.order-b.order; }) : sortByCreated(list);
-  }
-  function migrateRewardOrderIfNeeded(sortedList){
-    var needsMigration = sortedList.some(function(r){ return typeof r.order!=="number"; });
-    if(!needsMigration) return;
-    sortedList.forEach(function(r, idx){
-      if(typeof r.order==="number") return;
-      r.order = idx;
-      if(state.dbAvailable){ state.db.doc("rewards/"+r.id).update({order:idx}).catch(function(e){console.error(e);}); }
-      else { var data=lsLoad(); data.rewards.forEach(function(rr){ if(rr.id===r.id) rr.order=idx; }); lsSave(data); }
-    });
-  }
-  function persistRewardOrder(orderedIds){
-    var byId = {}; state.rewards.forEach(function(r){ byId[r.id]=r; });
-    var newList = orderedIds.map(function(id){ return byId[id]; }).filter(Boolean);
-    newList.forEach(function(r, idx){ r.order = idx; });
-    state.rewards = newList;
-    if(state.dbAvailable){
-      orderedIds.forEach(function(id, idx){ state.db.doc("rewards/"+id).update({order:idx}).catch(function(e){console.error(e);}); });
-    } else {
-      var data = lsLoad();
-      orderedIds.forEach(function(id, idx){ data.rewards.forEach(function(r){ if(r.id===id) r.order=idx; }); });
-      lsSave(data);
-    }
-  }
-  function renameRewardFull(id,name,cost){
-    name=(name||"").trim(); if(!name) return;
-    cost = Number(cost); if(!isFinite(cost)||cost<0) cost=0;
-    if(state.dbAvailable){ state.db.doc("rewards/"+id).update({name:name,cost:cost}).catch(function(e){console.error(e);}); }
-    else { var data=lsLoad(); data.rewards.forEach(function(r){ if(r.id===id){ r.name=name; r.cost=cost; } }); lsSave(data); syncLocalRewards(); render(); }
-  }
-  function deleteReward(id){
-    if(state.dbAvailable){ state.db.doc("rewards/"+id).delete().catch(function(e){console.error(e);}); }
-    else { var data=lsLoad(); data.rewards=data.rewards.filter(function(r){return r.id!==id;}); lsSave(data); syncLocalRewards(); render(); }
-  }
-  function syncLocalRules(){
-    var data=lsLoad();
-    state.rules = normalizeAndSortRules(data.rules);
-    migrateRuleOrderIfNeeded(state.rules);
-    state.rulesReady=true;
-  }
-  function syncLocalRewards(){
-    var data=lsLoad();
-    state.rewards = normalizeAndSortRewards(data.rewards);
-    migrateRewardOrderIfNeeded(state.rewards);
-    state.rewardsReady=true;
-  }
-
-  // ---------- entries ----------
   function maybeExtendStartedAt(dateStr){
     if(!state.settings || dateStr >= state.settings.startedAt) return Promise.resolve();
     state.settings.startedAt = dateStr;
-    state.settingsDirty = true;
-    if(state.dbAvailable){
-      return state.db.doc("meta/settings").update({startedAt:dateStr}).catch(function(e){ console.error(e); });
-    } else {
-      var data = lsLoad();
-      data.settings = state.settings;
-      lsSave(data);
-      return Promise.resolve();
-    }
+    return q(sb.from("settings").update({started_at: dateStr}).eq("user_id", state.user.id)).catch(fail);
+  }
+
+  // ---------- rules / rewards CRUD ----------
+  function cleanRange(min, max){
+    min = Math.round(Number(min)); max = Math.round(Number(max));
+    if(!isFinite(min)) min = 0; if(!isFinite(max)) max = 0;
+    return min>max ? [max, min] : [min, max];
+  }
+  function cleanCost(cost){ cost = Math.round(Number(cost)); return (!isFinite(cost) || cost<0) ? 0 : cost; }
+
+  function addRule(name, min, max){
+    name = (name||"").trim(); if(!name) return;
+    var r = cleanRange(min, max);
+    q(sb.from("rules").insert({name:name, min_points:r[0], max_points:r[1], sort_order: state.rules.length})).then(loadRules).catch(fail);
+  }
+  function renameRuleFull(id, name, min, max){
+    name = (name||"").trim(); if(!name) return;
+    var r = cleanRange(min, max);
+    q(sb.from("rules").update({name:name, min_points:r[0], max_points:r[1]}).eq("id", id)).then(loadRules).catch(fail);
+  }
+  function deleteRule(id){
+    q(sb.from("rules").delete().eq("id", id)).then(loadRules).catch(fail);
+  }
+  function persistRuleOrder(orderedIds){
+    var byId = {}; state.rules.forEach(function(r){ byId[r.id] = r; });
+    state.rules = orderedIds.map(function(id){ return byId[id]; }).filter(Boolean);
+    state.rules.forEach(function(r, idx){ r.order = idx; });
+    Promise.all(orderedIds.map(function(id, idx){ return q(sb.from("rules").update({sort_order: idx}).eq("id", id)); })).catch(fail);
+  }
+
+  function addReward(name, cost){
+    name = (name||"").trim(); if(!name) return;
+    q(sb.from("rewards").insert({name:name, cost:cleanCost(cost), sort_order: state.rewards.length})).then(loadRewards).catch(fail);
+  }
+  function renameRewardFull(id, name, cost){
+    name = (name||"").trim(); if(!name) return;
+    q(sb.from("rewards").update({name:name, cost:cleanCost(cost)}).eq("id", id)).then(loadRewards).catch(fail);
+  }
+  function deleteReward(id){
+    q(sb.from("rewards").delete().eq("id", id)).then(loadRewards).catch(fail);
+  }
+  function persistRewardOrder(orderedIds){
+    var byId = {}; state.rewards.forEach(function(r){ byId[r.id] = r; });
+    state.rewards = orderedIds.map(function(id){ return byId[id]; }).filter(Boolean);
+    state.rewards.forEach(function(r, idx){ r.order = idx; });
+    Promise.all(orderedIds.map(function(id, idx){ return q(sb.from("rewards").update({sort_order: idx}).eq("id", id)); })).catch(fail);
+  }
+
+  // ---------- entries ----------
+  // 書き込み → 集計を取り直す → ポイントを計算し直す、の順で進め、最後に cb(成功したか) を呼ぶ
+  function afterLogWrite(p, dateStr, cb){
+    p.then(function(){ return maybeExtendStartedAt(dateStr); })
+      .then(function(){ return refreshLogsCache(); })
+      .then(function(){ recomputeWallet(); cb&&cb(true); })
+      .catch(function(e){ fail(e); cb&&cb(false); });
   }
   function addEntry(dateStr, entry, cb){
-    if(state.dbAvailable){
-      var ref = state.db.doc("logs/"+dateStr);
-      ref.get().then(function(snap){
-        var d = snap.exists ? snap.data() : {};
-        var entries = Array.isArray(d.entries) ? d.entries : [];
-        entries = entries.concat([entry]);
-        return ref.set({date:dateStr, entries:entries, note:d.note||"", updatedAt: nowIso()});
-      }).then(function(){
-        return maybeExtendStartedAt(dateStr);
-      }).then(function(){
-        return refreshLogsCache();
-      }).then(function(){ recomputeWallet(); cb&&cb(true); })
-      .catch(function(e){ console.error(e); cb&&cb(false); });
-    } else {
-      var data = lsLoad();
-      if(!data.logs[dateStr]) data.logs[dateStr] = {date:dateStr, entries:[], note:""};
-      data.logs[dateStr].entries.push(entry);
-      lsSave(data);
-      maybeExtendStartedAt(dateStr).then(function(){
-        return refreshLogsCache();
-      }).then(function(){ recomputeWallet(); cb&&cb(true); });
-    }
+    afterLogWrite(q(sb.from("entries").insert({
+      date: dateStr, rule_id: entry.ruleId, rule_name: entry.ruleName, points: entry.points, note: entry.note||""
+    })), dateStr, cb);
   }
   function deleteEntry(dateStr, entryId, cb){
-    if(state.dbAvailable){
-      var ref = state.db.doc("logs/"+dateStr);
-      ref.get().then(function(snap){
-        var d = snap.exists ? snap.data() : {};
-        var entries = Array.isArray(d.entries) ? d.entries : [];
-        var note = d.note||"";
-        entries = entries.filter(function(e){ return e.id!==entryId; });
-        return (entries.length||note) ? ref.set({date:dateStr, entries:entries, note:note, updatedAt: nowIso()}) : ref.delete();
-      }).then(function(){ return refreshLogsCache(); })
-      .then(function(){ recomputeWallet(); cb&&cb(true); })
-      .catch(function(e){ console.error(e); cb&&cb(false); });
-    } else {
-      var data = lsLoad();
-      if(data.logs[dateStr]){
-        data.logs[dateStr].entries = data.logs[dateStr].entries.filter(function(e){ return e.id!==entryId; });
-        if(!data.logs[dateStr].entries.length && !data.logs[dateStr].note) delete data.logs[dateStr];
-      }
-      lsSave(data);
-      refreshLogsCache().then(function(){ recomputeWallet(); cb&&cb(true); });
-    }
+    afterLogWrite(q(sb.from("entries").delete().eq("id", entryId)), dateStr, cb);
   }
   function updateEntry(dateStr, entryId, newPoints, newNote, cb){
-    if(state.dbAvailable){
-      var ref = state.db.doc("logs/"+dateStr);
-      ref.get().then(function(snap){
-        var d = snap.exists ? snap.data() : {};
-        var entries = Array.isArray(d.entries) ? d.entries : [];
-        var found = false;
-        entries = entries.map(function(e){
-          if(e.id!==entryId) return e;
-          found = true;
-          return {id:e.id, ruleId:e.ruleId, ruleName:e.ruleName, points:newPoints, note:newNote, at:e.at, updatedAt: nowIso()};
-        });
-        if(!found) return null;
-        return ref.set({date:dateStr, entries:entries, note:d.note||"", updatedAt: nowIso()});
-      }).then(function(){ return refreshLogsCache(); })
-      .then(function(){ recomputeWallet(); cb&&cb(true); })
-      .catch(function(e){ console.error(e); cb&&cb(false); });
-    } else {
-      var data = lsLoad();
-      if(data.logs[dateStr]){
-        data.logs[dateStr].entries = data.logs[dateStr].entries.map(function(e){
-          if(e.id!==entryId) return e;
-          return {id:e.id, ruleId:e.ruleId, ruleName:e.ruleName, points:newPoints, note:newNote, at:e.at, updatedAt: nowIso()};
-        });
-      }
-      lsSave(data);
-      refreshLogsCache().then(function(){ recomputeWallet(); cb&&cb(true); });
-    }
+    afterLogWrite(q(sb.from("entries").update({points: newPoints, note: newNote||"", updated_at: nowIso()}).eq("id", entryId)), dateStr, cb);
+  }
+  function updateDayNote(dateStr, note, cb){
+    note = String(note==null?"":note).slice(0,300);
+    var p = note
+      ? q(sb.from("day_notes").upsert({user_id: state.user.id, date: dateStr, note: note, updated_at: nowIso()}, {onConflict: "user_id,date"}))
+      : q(sb.from("day_notes").delete().eq("date", dateStr));
+    afterLogWrite(p, note ? dateStr : "9999-12-31", cb);
   }
   function redeemReward(reward){
-    var body = {date: todayStr, rewardId: reward.id, rewardName: reward.name, cost: reward.cost, redeemedAt: nowIso()};
-    if(state.dbAvailable){
-      state.db.collection("redemptions").add(body).then(function(){ return refreshRedemptionsCache(); })
-        .then(function(){ recomputeWallet(); render(); })
-        .catch(function(e){ console.error(e); });
-    } else {
-      var data = lsLoad(); body.id=uid(); data.redemptions.push(body); lsSave(data);
-      refreshRedemptionsCache().then(function(){ recomputeWallet(); render(); });
-    }
+    q(sb.from("redemptions").insert({date: todayStr, reward_id: reward.id, reward_name: reward.name, cost: reward.cost}))
+      .then(function(){ return refreshRedemptionsCache(); })
+      .then(function(){ recomputeWallet(); render(); })
+      .catch(fail);
+  }
+
+  // ---------- 以前この端末(localStorage)に保存していた記録の取り込み ----------
+  var LS_KEY = "myrulelog_v2";
+  function readLegacy(){
+    try{
+      if(localStorage.getItem(LS_KEY+"_imported")==="1") return null;
+      var d = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      if(!d || typeof d!=="object") return null;
+      var n = (d.rules||[]).length + (d.rewards||[]).length + Object.keys(d.logs||{}).length + (d.redemptions||[]).length;
+      return n>0 ? d : null;
+    }catch(e){ return null; }
+  }
+  function insertMany(table, rows, withIds){
+    if(!rows.length) return Promise.resolve([]);
+    var chunks = [];
+    for(var i=0;i<rows.length;i+=500) chunks.push(rows.slice(i,i+500));
+    return chunks.reduce(function(p, chunk){
+      return p.then(function(acc){
+        var req = sb.from(table).insert(chunk);
+        return q(withIds ? req.select("id") : req).then(function(res){ return acc.concat(res||[]); });
+      });
+    }, Promise.resolve([]));
+  }
+  function importLegacy(d){
+    var ruleMap = {}, rewardMap = {};
+    var rules = d.rules||[], rewards = d.rewards||[];
+    return insertMany("rules", rules.map(function(r, i){
+      var rg = cleanRange(r.min, r.max);
+      return {name: String(r.name||"").slice(0,40) || "(名前なし)", min_points: rg[0], max_points: rg[1], sort_order: state.rules.length+i};
+    }), true).then(function(ids){
+      ids.forEach(function(row, i){ ruleMap[rules[i].id] = row.id; });
+      return insertMany("rewards", rewards.map(function(r, i){
+        return {name: String(r.name||"").slice(0,40) || "(名前なし)", cost: cleanCost(r.cost), sort_order: state.rewards.length+i};
+      }), true);
+    }).then(function(ids){
+      ids.forEach(function(row, i){ rewardMap[rewards[i].id] = row.id; });
+      var entryRows = [], noteRows = [];
+      Object.keys(d.logs||{}).forEach(function(date){
+        var log = d.logs[date] || {};
+        (log.entries||[]).forEach(function(e){
+          entryRows.push({date: date, rule_id: ruleMap[e.ruleId]||null, rule_name: String(e.ruleName||"(不明なルール)"),
+            points: Math.round(Number(e.points)||0), note: String(e.note||"").slice(0,60), created_at: e.at||undefined});
+        });
+        if(log.note) noteRows.push({user_id: state.user.id, date: date, note: String(log.note).slice(0,300)});
+      });
+      var redemptionRows = (d.redemptions||[]).map(function(r){
+        return {date: r.date, reward_id: rewardMap[r.rewardId]||null, reward_name: String(r.rewardName||"(不明なごほうび)"),
+          cost: cleanCost(r.cost), redeemed_at: r.redeemedAt||undefined};
+      });
+      return insertMany("entries", entryRows).then(function(){
+        return noteRows.length ? q(sb.from("day_notes").upsert(noteRows, {onConflict: "user_id,date"})) : null;
+      }).then(function(){ return insertMany("redemptions", redemptionRows); });
+    }).then(function(){
+      var s = d.settings;
+      if(s && s.startedAt && s.startedAt < state.settings.startedAt){
+        state.settings.startedAt = s.startedAt;
+        return q(sb.from("settings").update({started_at: s.startedAt}).eq("user_id", state.user.id));
+      }
+    }).then(function(){
+      try{ localStorage.setItem(LS_KEY+"_imported", "1"); }catch(e){}
+    });
   }
 
   // ---------- day / year helpers ----------
@@ -602,31 +541,6 @@
     var tracked = !!(state.settings && dateStr >= state.settings.startedAt);
     var base = tracked ? (state.settings.baseGain||0) : 0;
     return {entries: entries, note: note, base: base, total: base + sum, tracked: tracked};
-  }
-
-  function updateDayNote(dateStr, note, cb){
-    note = String(note==null?"":note).slice(0,300);
-    function afterWrite(){
-      var p = note ? maybeExtendStartedAt(dateStr) : Promise.resolve();
-      p.then(function(){ return refreshLogsCache(); }).then(function(){ recomputeWallet(); cb&&cb(true); });
-    }
-    if(state.dbAvailable){
-      var ref = state.db.doc("logs/"+dateStr);
-      ref.get().then(function(snap){
-        var d = snap.exists ? snap.data() : {};
-        var entries = Array.isArray(d.entries) ? d.entries : [];
-        if(!entries.length && !note){ return snap.exists ? ref.delete() : null; }
-        return ref.set({date:dateStr, entries:entries, note:note, updatedAt: nowIso()});
-      }).then(afterWrite).catch(function(e){ console.error(e); cb&&cb(false); });
-    } else {
-      var data = lsLoad();
-      var existing = data.logs[dateStr];
-      var entries = (existing && existing.entries) || [];
-      if(!entries.length && !note){ delete data.logs[dateStr]; }
-      else { data.logs[dateStr] = {date:dateStr, entries:entries, note:note}; }
-      lsSave(data);
-      afterWrite();
-    }
   }
 
   function dayNoteSectionHtml(dateStr){
@@ -936,6 +850,9 @@
     });
   }
   function render(){
+    document.querySelector(".bottomnav").hidden = !state.user;
+    if(!state.authReady){ root.innerHTML = '<div class="empty"><p>読み込み中です…</p></div>'; return; }
+    if(!state.user){ renderLogin(); return; }
     setActiveTabUI();
     if(state.view==="home") renderHome();
     else if(state.view==="calendar") renderCalendar();
@@ -943,8 +860,24 @@
     else renderManage();
   }
   function dbBanner(){
-    if(state.dbAvailable===false) return '<div class="banner warn">この端末のブラウザ内だけに保存されます。他の端末には記録が引き継がれません。</div>';
-    return "";
+    var html = "";
+    if(state.errorMsg) html += '<div class="banner warn">'+escapeHtml(state.errorMsg)+'</div>';
+    if(state.legacyData) html += '<div class="banner">この端末に、以前の記録が残っています。アカウントに取り込めます。'+
+      '<div style="margin-top:8px;"><button class="addbtn" data-importlegacy="1"'+(state.importing?' disabled':'')+'>'+(state.importing?'取り込み中…':'取り込む')+'</button></div></div>';
+    return html;
+  }
+  function bindBanner(){
+    var btn = document.querySelector("[data-importlegacy]");
+    if(!btn) return;
+    btn.onclick = function(){
+      if(!state.legacyData || state.importing) return;
+      state.importing = true; render();
+      importLegacy(state.legacyData).then(function(){
+        state.legacyData = null; state.importing = false;
+        return Promise.all([loadRules(), loadRewards(), refreshLogsCache(), refreshRedemptionsCache()]);
+      }).then(function(){ recomputeWallet(); render(); })
+      .catch(function(e){ state.importing = false; fail(e); });
+    };
   }
 
   // ---- Home ----
@@ -988,6 +921,7 @@
 
     root.innerHTML = html;
     bindHome();
+    bindBanner();
   }
 
   function bindHome(){
@@ -1620,8 +1554,15 @@
       }
     });
 
+    html += '<div class="sectionlabel">アカウント</div>'+
+      '<div class="settingsrow"><div class="lbl">'+escapeHtml(state.user.email||"")+'<span class="sub">このアカウントでログイン中</span></div>'+
+      '<button class="addbtn" id="logoutBtn">ログアウト</button></div>';
+
     root.innerHTML = html;
     bindManage();
+    bindBanner();
+    var logoutBtn = document.getElementById("logoutBtn");
+    if(logoutBtn) logoutBtn.onclick = function(){ sb.auth.signOut().catch(fail); };
   }
 
   function bindManage(){
@@ -1691,28 +1632,6 @@
     });
   }
 
-  // ---------- subscriptions ----------
-  function subscribeRules(){
-    if(state.unsubRules) state.unsubRules();
-    state.unsubRules = state.db.collection("rules").orderBy("createdAt","asc").onSnapshot(function(snap){
-      var list = snap.docs.map(function(d){ var data=d.data()||{}; return {id:d.id, name:data.name||"", min:typeof data.min==="number"?data.min:0, max:typeof data.max==="number"?data.max:0, order: typeof data.order==="number"?data.order:undefined, createdAt:data.createdAt||""}; });
-      state.rules = normalizeAndSortRules(list);
-      migrateRuleOrderIfNeeded(state.rules);
-      state.rulesReady = true;
-      render();
-    }, function(err){ console.error("rules sub error", err); });
-  }
-  function subscribeRewards(){
-    if(state.unsubRewards) state.unsubRewards();
-    state.unsubRewards = state.db.collection("rewards").orderBy("createdAt","asc").onSnapshot(function(snap){
-      var list = snap.docs.map(function(d){ var data=d.data()||{}; return {id:d.id, name:data.name||"", cost:typeof data.cost==="number"?data.cost:0, order: typeof data.order==="number"?data.order:undefined, createdAt:data.createdAt||""}; });
-      state.rewards = normalizeAndSortRewards(list);
-      migrateRewardOrderIfNeeded(state.rewards);
-      state.rewardsReady = true;
-      render();
-    }, function(err){ console.error("rewards sub error", err); });
-  }
-
   // ---------- tab wiring ----------
   var TAB_META = {home:["home","ホーム"], calendar:["calendar","カレンダー"], graph:["graph","グラフ"], manage:["manage","管理"]};
   Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(btn){
@@ -1721,39 +1640,85 @@
     btn.onclick = function(){ state.view = btn.getAttribute("data-view"); state.editingEntryId=null; state.loggingRuleId=null; state.loggingDate=null; render(); };
   });
 
+  // ---------- login ----------
+  function authErrorText(e){
+    var m = (e && e.message) || "";
+    if(/Invalid login credentials/i.test(m)) return "メールアドレスかパスワードが違います。";
+    if(/already registered/i.test(m)) return "このメールアドレスは登録済みです。「ログイン」を押してください。";
+    if(/Signups not allowed/i.test(m)) return "新規登録は締め切っています。";
+    if(/Password should be/i.test(m)) return "パスワードは8文字以上にしてください。";
+    if(/valid email|invalid format/i.test(m)) return "メールアドレスの形式が正しくありません。";
+    return "うまくいきませんでした: " + m;
+  }
+  function renderLogin(){
+    root.innerHTML = '<div class="loginbox">'+
+      '<div class="sectionlabel">ログイン</div>'+
+      '<p class="loginnote">記録はあなたのアカウントにだけ保存され、他の人からは見えません。</p>'+
+      '<input type="email" class="noteinput" id="loginEmail" placeholder="メールアドレス" autocomplete="email">'+
+      '<input type="password" class="noteinput" id="loginPw" placeholder="パスワード(8文字以上)" autocomplete="current-password">'+
+      '<div class="formbtns"><button class="ghostbtn" id="signupBtn">新規登録</button>'+
+      '<button class="primarybtn" id="loginBtn">ログイン</button></div>'+
+      '<div class="loginmsg" id="loginMsg"></div>'+
+      '</div>';
+    var emailEl = document.getElementById("loginEmail"), pwEl = document.getElementById("loginPw");
+    var msg = document.getElementById("loginMsg");
+    var loginBtn = document.getElementById("loginBtn"), signupBtn = document.getElementById("signupBtn");
+    function run(fn){
+      var email = emailEl.value.trim(), password = pwEl.value;
+      if(!email || !password){ msg.textContent = "メールアドレスとパスワードを入力してください。"; return; }
+      loginBtn.disabled = signupBtn.disabled = true;
+      msg.textContent = "確認中です…";
+      fn({email: email, password: password}).then(function(res){
+        if(res.error) throw res.error;
+        msg.textContent = "";
+      }).catch(function(e){
+        msg.textContent = authErrorText(e);
+        loginBtn.disabled = signupBtn.disabled = false;
+      });
+    }
+    loginBtn.onclick = function(){ run(function(c){ return sb.auth.signInWithPassword(c); }); };
+    signupBtn.onclick = function(){ run(function(c){ return sb.auth.signUp(c); }); };
+    pwEl.onkeydown = function(ev){ if(ev.key==="Enter") loginBtn.click(); };
+  }
+
+  function resetUserData(){
+    state.user = null;
+    state.rules = []; state.rulesReady = false;
+    state.rewards = []; state.rewardsReady = false;
+    state.settings = {baseGain:20, startedAt: todayStr, createdAt: nowIso()};
+    state.settingsDirty = false;
+    state.logsByDate = {}; state.loggedSumAll = 0; state.logsReady = false;
+    state.redemptionsByDate = {}; state.redeemedSumAll = 0; state.wallet = 0;
+    state.errorMsg = ""; state.view = "home";
+  }
+  function onSignedIn(user){
+    state.user = user;
+    loadRules(); loadRewards();
+    ensureSettings().then(function(){
+      return Promise.all([refreshLogsCache(), refreshRedemptionsCache()]);
+    }).then(function(){
+      state.legacyData = readLegacy();
+      recomputeWallet();
+      render();
+    });
+  }
+
   // ---------- boot ----------
   function boot(){
     render();
-    function afterBackendReady(){
-      ensureSettings().then(function(){
-        return Promise.all([refreshLogsCache(), refreshRedemptionsCache()]);
-      }).then(function(){
-        recomputeWallet();
-        render();
-      });
-    }
-    if(window.claude && window.claude.use){
-      window.claude.use("db").then(function(db){
-        if(db){
-          state.db = db; state.dbAvailable = true;
-          subscribeRules(); subscribeRewards();
-          afterBackendReady();
-        } else {
-          state.dbAvailable = false;
-          syncLocalRules(); syncLocalRewards();
-          afterBackendReady();
-        }
-      }).catch(function(){
-        state.dbAvailable = false;
-        syncLocalRules(); syncLocalRewards();
-        afterBackendReady();
-      });
-    } else {
-      state.dbAvailable = false;
-      syncLocalRules(); syncLocalRewards();
-      afterBackendReady();
-    }
+    // 起動時(INITIAL_SESSION)・ログイン・ログアウトのたびに呼ばれる。
+    // この中で直接 Supabase を呼ぶと処理が詰まることがあるので、setTimeout で一拍おく
+    sb.auth.onAuthStateChange(function(event, session){
+      setTimeout(function(){
+        state.authReady = true;
+        var u = session ? session.user : null;
+        if(u && (!state.user || state.user.id!==u.id)) onSignedIn(u);
+        else if(!u && state.user){ resetUserData(); render(); }
+        else if(!u) render();
+      }, 0);
+    });
   }
   boot();
 })();
+
 </script>
